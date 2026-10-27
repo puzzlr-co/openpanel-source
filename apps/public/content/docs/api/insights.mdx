@@ -1,0 +1,30 @@
+---
+title: Insights
+description: Query analytics data including metrics, pages, referrers, devices, and geo breakdowns.
+---
+
+## Authentication
+
+Requires a `read` or `root` client — the default `write` client does not have access. See the [Authentication](/docs/api/authentication) guide.
+
+## Base URL
+
+```
+https://api.openpanel.dev/insights/{projectId}
+```
+
+## Available endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /metrics` | Visitors, sessions, bounce rate, and engagement |
+| `GET /live` | Current active visitor count |
+| `GET /pages` | Top pages by sessions |
+| `GET /referrer` | Traffic sources |
+| `GET /country`, `/region`, `/city` | Geographic breakdown |
+| `GET /device`, `/browser`, `/os` | Device and technology breakdown |
+| `GET /utm_source`, `/utm_campaign`, … | UTM parameter breakdown |
+
+Most endpoints accept `startDate`, `endDate`, `range`, `filters`, `cursor`, and `limit` query parameters.
+
+For full schemas and all available endpoints, see the [API Reference](/docs/api-reference).

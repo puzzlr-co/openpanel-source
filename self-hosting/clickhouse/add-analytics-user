@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Add a read-only analytics user. Run on the VPS from this directory:
+#
+#   ./add-analytics-user alice
+#
+# ClickHouse watches users.d, so the account is live within seconds: no restart,
+# no ingestion pause. Removing someone is the mirror image — delete their block
+# from readonly-users.xml and it is revoked just as quickly.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+CONFIG=readonly-users.xml
+CONTAINER=self-hosting-op-ch-1
+
+name=${1:-}
+if [[ ! $name =~ ^[a-z][a-z0-9_]*$ ]]; then
+  echo "usage: $(basename "$0") <name>   (lowercase letters, digits, underscore)" >&2
+  exit 1
+fi
+[ -f $CONFIG ] || { echo "no $CONFIG here — copy readonly-users.template.xml first" >&2; exit 1; }
+grep -q "<$name>" $CONFIG && { echo "user '$name' already exists" >&2; exit 1; }
+
+# Hex, not base64: '/' and '+' are unsafe in the https://user:pass@host form
+# that people reach for even when the documented path uses headers.
+pw=$(openssl rand -hex 32)
+hash=$(printf '%s' "$pw" | sha256sum | cut -d' ' -f1)
+
+tmp=$(mktemp)
+awk -v name="$name" -v hash="$hash" '
+  /<\/users>/ && !added {
+    printf "        <%s>\n", name
+    printf "            <password_sha256_hex>%s</password_sha256_hex>\n", hash
+    printf "            <profile>analytics_ro</profile>\n"
+    printf "            <quota>analytics_ro</quota>\n"
+    printf "            <networks><ip>::/0</ip></networks>\n"
+    printf "            <grants>\n"
+    printf "                <query>GRANT SELECT ON openpanel.*</query>\n"
+    printf "                <query>GRANT SELECT ON system.*</query>\n"
+    printf "            </grants>\n"
+    printf "        </%s>\n", name
+    added = 1
+  }
+  { print }
+' $CONFIG > "$tmp"
+
+# Never overwrite the account list with a shorter file than we read: this is the
+# one destructive step, and a truncated users.d config would take every analytics
+# account with it.
+if [ "$(wc -c < "$tmp")" -le "$(wc -c < $CONFIG)" ]; then
+  echo "refusing to write: generated config is not larger than the original" >&2
+  rm -f "$tmp"; exit 1
+fi
+
+# Rewrite through the existing inode so ownership and mode survive, then assert
+# them anyway: clickhouse-server runs as uid 101 and refuses to *start* on a
+# config file it cannot read, which turns a bad mode here into an outage on the
+# next restart rather than an error now.
+cat "$tmp" > $CONFIG
+rm -f "$tmp"
+chown 101:101 $CONFIG
+chmod 640 $CONFIG
+
+echo "waiting for ClickHouse to pick up $name ..."
+for _ in $(seq 1 15); do
+  if docker exec $CONTAINER clickhouse-client -u "$name" --password "$pw" -q "SELECT 1" >/dev/null 2>&1; then
+    printf '\nVerified live, no restart needed. For the qop proxy, set these as its Worker\nsecrets (puzzlr-brain tools/qop/proxy: bunx wrangler@4 secret put <name>):\n\n  CH_USER=%s\n  CH_PASSWORD=%s\n' "$name" "$pw"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo "written to $CONFIG but not active after 30s — check: docker logs $CONTAINER" >&2
+exit 1

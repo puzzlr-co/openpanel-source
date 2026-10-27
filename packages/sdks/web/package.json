@@ -1,0 +1,24 @@
+{
+  "name": "@openpanel/web",
+  "version": "1.4.1-local",
+  "license": "MIT",
+  "module": "index.ts",
+  "config": {
+    "docPath": "apps/public/content/docs/(tracking)/sdks/web.mdx"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openpanel/sdk": "workspace:1.3.1-local",
+    "@rrweb/types": "2.0.0-alpha.20",
+    "rrweb": "2.0.0-alpha.20"
+  },
+  "devDependencies": {
+    "@openpanel/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "tsup": "^7.2.0",
+    "typescript": "catalog:"
+  }
+}

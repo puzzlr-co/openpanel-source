@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Give ClickHouse's `default` superuser a password and propagate it to both
+# callers: the app over HTTP (CLICKHOUSE_URL) and every in-container
+# clickhouse-client invocation. Run on the VPS from this directory:
+#
+#   ./secure-default-user
+#
+# Re-run to rotate. Restart the services it names afterwards.
+#
+# Why this exists: the shipped `default` user authenticates with an empty
+# password and accepts connections from ::/0. That is harmless while ClickHouse
+# is only reachable on the Docker network, and a remote root hole the moment
+# anything proxies to port 8123 — restricting <networks> does not help, because
+# a reverse proxy makes external callers appear to come from inside the subnet.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+ENV_FILE=../.env
+
+# Hex, not base64: this password is embedded in a URL, where '/' terminates the
+# authority component and '+' can decode as a space.
+pw=$(openssl rand -hex 32)
+hash=$(printf '%s' "$pw" | sha256sum | cut -d' ' -f1)
+
+# The `remove` is load-bearing: users.d merges with the base users.xml, and
+# leaving its empty <password> in place alongside a hash makes ClickHouse reject
+# the user as having two authentication methods.
+cat > secure-default-user.xml <<EOF
+<clickhouse>
+    <users>
+        <default>
+            <password remove="remove"/>
+            <password_sha256_hex>${hash}</password_sha256_hex>
+        </default>
+    </users>
+</clickhouse>
+EOF
+
+# /etc/clickhouse-client/conf.d is merged into the client's own config, so a
+# bare `clickhouse-client` keeps authenticating with no argument changes. That
+# is what holds up the op-ch healthcheck — api and dashboard gate on
+# service_healthy — along with init-db.sh and the bench scripts.
+cat > client-auth.xml <<EOF
+<config>
+    <user>default</user>
+    <password>${pw}</password>
+</config>
+EOF
+
+chown 101:101 secure-default-user.xml client-auth.xml
+chmod 640 secure-default-user.xml client-auth.xml
+
+cp "$ENV_FILE" "$ENV_FILE.bak-$(date +%Y%m%d-%H%M%S)"
+tmp=$(mktemp)
+grep -v '^CLICKHOUSE_URL=' "$ENV_FILE" > "$tmp" || true
+printf 'CLICKHOUSE_URL="http://default:%s@op-ch:8123/openpanel"\n' "$pw" >> "$tmp"
+cat "$tmp" > "$ENV_FILE"
+rm -f "$tmp"
+
+cat <<'MSG'
+
+Written: secure-default-user.xml, client-auth.xml, and CLICKHOUSE_URL in ../.env
+(previous .env backed up alongside it).
+
+The server config is hot-reloaded, but the client config and the new env are
+only picked up on recreate. From ../ :
+
+  docker compose up -d op-ch          # picks up the client-auth mount
+  docker compose up -d --force-recreate op-api op-dashboard op-worker
+
+MSG

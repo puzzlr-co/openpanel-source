@@ -1,0 +1,27 @@
+# Merged automatically by `docker compose` alongside docker-compose.yml, which is
+# host-local and gitignored. Keeping these mounts here means the analytics access
+# and the default-user hardening survive a compose regeneration and never touch
+# the upstream file.
+#
+# Create the three files below BEFORE the first `up`: Docker silently creates a
+# directory at a missing bind-mount source, and ClickHouse then fails to start on
+# the unparseable config. All three must be readable by uid 101.
+services:
+  op-ch:
+    volumes:
+      # Read-only analytics accounts. See readonly-users.template.xml.
+      - ./clickhouse/readonly-users.xml:/etc/clickhouse-server/users.d/readonly-users.xml:ro
+      # Password for the `default` superuser. See ./clickhouse/secure-default-user.
+      - ./clickhouse/secure-default-user.xml:/etc/clickhouse-server/users.d/secure-default-user.xml:ro
+      # Same password for in-container clickhouse-client, so the healthcheck,
+      # init-db.sh and the bench scripts keep working with no argument changes.
+      - ./clickhouse/client-auth.xml:/etc/clickhouse-client/conf.d/auth.xml:ro
+
+  # Cloudflare Tunnel for the qop proxy (puzzlr-brain tools/qop/proxy/): the Worker
+  # reaches op-ch:8123 through its Workers VPC binding, so ClickHouse needs no public
+  # hostname. Dials out only. Token (remotely managed tunnel qop-openpanel) is root-only.
+  op-tunnel:
+    image: cloudflare/cloudflared:2026.10.4
+    restart: always
+    command: tunnel --no-autoupdate --protocol quic run
+    env_file: /root/.qop_tunnel.env

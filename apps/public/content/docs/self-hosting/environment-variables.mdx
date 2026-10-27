@@ -1,0 +1,1243 @@
+---
+title: Environment Variables
+description: Complete reference for all OpenPanel environment variables
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+This page documents all environment variables used by OpenPanel. Variables are organized by category. Most variables are optional and have sensible defaults.
+
+<Callout>
+For deployment-specific configuration, see the [deployment guides](/docs/self-hosting/deploy-docker-compose).
+</Callout>
+
+## Database & Storage
+
+### DATABASE_URL
+
+**Type**: `string`
+**Required**: Yes
+**Default**: None
+
+PostgreSQL connection string for the main database.
+
+**Example**:
+```bash
+DATABASE_URL=postgres://user:password@localhost:5432/openpanel?schema=public
+```
+
+### DATABASE_URL_DIRECT
+
+**Type**: `string`
+**Required**: No
+**Default**: Same as `DATABASE_URL`
+
+Direct PostgreSQL connection string (bypasses connection pooling). Used for migrations and administrative operations.
+
+**Example**:
+```bash
+DATABASE_URL_DIRECT=postgres://user:password@localhost:5432/openpanel?schema=public
+```
+
+### DATABASE_URL_REPLICA
+
+**Type**: `string`
+**Required**: No
+**Default**: Same as `DATABASE_URL`
+
+Read replica connection string for read-heavy operations. If not set, uses the main database.
+
+**Example**:
+```bash
+DATABASE_URL_REPLICA=postgres://user:password@replica-host:5432/openpanel?schema=public
+```
+
+### REDIS_URL
+
+**Type**: `string`
+**Required**: Yes
+**Default**: `redis://localhost:6379`
+
+Redis connection string for caching and queue management.
+
+**Example**:
+```bash
+REDIS_URL=redis://localhost:6379
+# With password
+REDIS_URL=redis://:password@localhost:6379
+```
+
+### CLICKHOUSE_URL
+
+**Type**: `string`
+**Required**: Yes
+**Default**: `http://localhost:8123/openpanel`
+
+ClickHouse HTTP connection URL for analytics data storage.
+
+**Example**:
+```bash
+CLICKHOUSE_URL=http://localhost:8123/openpanel
+```
+
+### CLICKHOUSE_CLUSTER
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Enable ClickHouse cluster mode. Set to `true` or `1` if using a ClickHouse cluster.
+
+**Example**:
+```bash
+CLICKHOUSE_CLUSTER=true
+```
+
+### CLICKHOUSE_SETTINGS
+
+**Type**: `string` (JSON)
+**Required**: No
+**Default**: `{}`
+
+Additional ClickHouse settings as a JSON object.
+
+**Example**:
+```bash
+CLICKHOUSE_SETTINGS='{"max_execution_time": 300}'
+```
+
+### CLICKHOUSE_SETTINGS_REMOVE_CONVERT_ANY_JOIN
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Remove `convert_any_join` from ClickHouse settings. Used for compatibility with certain ClickHouse versions. This needs to be set if you use any clickhouse version below 25!
+
+## Application URLs
+
+### API_URL
+
+**Type**: `string`
+**Required**: Yes
+**Default**: None
+
+Public API URL exposed to the browser. Used by the dashboard frontend and API service.
+
+**Example**:
+```bash
+API_URL=https://analytics.example.com/api
+```
+
+### API_URL_SSR
+
+**Type**: `string`
+**Required**: No
+**Default**: Same as `API_URL`
+
+Internal API URL used **only** for the dashboard's server-side rendering (SSR) requests. Set this when the dashboard server can't resolve or reach the public `API_URL` and needs an internal address instead — for example a Docker Compose service name or a Kubernetes cluster-internal address.
+
+The browser always keeps using the public `API_URL`; only requests made from the dashboard server during SSR use `API_URL_SSR`. If unset, SSR falls back to `API_URL`.
+
+**Example**:
+```bash
+# Docker Compose: reach the API service directly over the internal network
+API_URL_SSR=http://api:3000
+
+# Kubernetes: cluster-internal service DNS
+API_URL_SSR=http://openpanel-api.default.svc.cluster.local:3000
+```
+
+<Callout>
+This only affects the dashboard's server-side requests. It does not change the API service itself, CORS, or any browser-facing URLs — those still use `API_URL`.
+</Callout>
+
+### DASHBOARD_URL
+
+**Type**: `string`
+**Required**: Yes
+**Default**: None
+
+Public dashboard URL exposed to the browser. Used by the dashboard frontend and API service.
+
+**Example**:
+```bash
+DASHBOARD_URL=https://analytics.example.com
+```
+
+### API_CORS_ORIGINS
+
+**Type**: `string` (comma-separated)
+**Required**: No
+**Default**: None
+
+Additional CORS origins allowed for API requests. Comma-separated list of origins.
+
+**Example**:
+```bash
+API_CORS_ORIGINS=https://app.example.com,https://another-app.com
+```
+
+## Authentication & Security
+
+### COOKIE_SECRET
+
+**Type**: `string`
+**Required**: Yes
+**Default**: None
+
+Secret key for encrypting session cookies. Generate a secure random string (32+ characters).
+
+**Example**:
+```bash
+# Generate with: openssl rand -base64 32
+COOKIE_SECRET=your-random-secret-here
+```
+
+<Callout type="warn">
+Never use the default value in production! Always generate a unique secret.
+</Callout>
+
+### COOKIE_TLDS
+
+**Type**: `string` (comma-separated)
+**Required**: No
+**Default**: None
+
+Custom multi-part TLDs for cookie domain handling. Use this when deploying on domains with public suffixes that aren't recognized by default (e.g., `.my.id`, `.web.id`, `.co.id`).
+
+**Example**:
+```bash
+# For domains like abc.my.id
+COOKIE_TLDS=my.id
+
+# Multiple TLDs
+COOKIE_TLDS=my.id,web.id,co.id
+```
+
+<Callout>
+This is required when using domain suffixes that are public suffixes (like `.co.uk`). Without this, the browser will reject authentication cookies. Common examples include Indonesian domains (`.my.id`, `.web.id`, `.co.id`).
+</Callout>
+
+### CUSTOM_COOKIE_DOMAIN
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Override the automatic cookie domain detection and set a specific domain for authentication cookies. Useful when proxying the API through your main domain or when you need precise control over cookie scope.
+
+**Example**:
+```bash
+# Set cookies only on the main domain
+CUSTOM_COOKIE_DOMAIN=.example.com
+
+# Set cookies on a specific subdomain
+CUSTOM_COOKIE_DOMAIN=.app.example.com
+```
+
+<Callout>
+When set, this completely bypasses the automatic domain parsing logic. The cookie will always be set as secure. Include a leading dot (`.`) to allow the cookie to be shared across subdomains.
+</Callout>
+
+### DEMO_USER_ID
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+User ID for demo mode. When set, creates a demo session for testing.
+
+**Example**:
+```bash
+DEMO_USER_ID=user_1234567890
+```
+
+### ALLOW_REGISTRATION
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false` (after first user is created)
+
+Allow new user registrations. Set to `true` to enable public registration.
+
+**Example**:
+```bash
+ALLOW_REGISTRATION=true
+```
+
+<Callout>
+Registration is automatically disabled after the first user is created. Set this to `true` to re-enable it.
+</Callout>
+
+### ALLOW_INVITATION
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `true`
+
+Allow user invitations. Set to `false` to disable invitation functionality.
+
+**Example**:
+```bash
+ALLOW_INVITATION=false
+```
+
+## AI Features
+
+The in-app AI chat supports **OpenAI** and **Anthropic** models. Set one or both provider keys on the API service — the model picker in the chat UI automatically shows only the models whose provider has a key configured. If neither is set, the chat drawer still opens but shows setup instructions instead of suggestions.
+
+Available models:
+
+- **OpenAI** — `GPT-4.1`, `GPT-4.1 mini`, `GPT-5.4 mini`
+- **Anthropic** — `Claude Haiku 4.5`, `Claude Sonnet 4.6`, `Claude Opus 4.6`
+
+<Callout type="info">
+The AI assistant is optional. Without `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` set, every other OpenPanel feature continues to work normally.
+</Callout>
+
+### OPENAI_API_KEY
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+OpenAI API key. When set, the OpenAI models appear in the chat model picker.
+
+**Example**:
+```bash
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+### OPENAI_BASE_URL
+
+**Type**: `string`
+**Required**: No
+**Default**: OpenAI default API base URL
+
+Override the OpenAI API base URL. Useful for proxies, gateways, Azure-compatible endpoints, or self-hosted OpenAI-compatible providers.
+
+**Example**:
+```bash
+OPENAI_BASE_URL=https://your-openai-compatible-endpoint.example.com/v1
+```
+
+### OPENAI_PROJECT
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Optional OpenAI project identifier to send with requests.
+
+**Example**:
+```bash
+OPENAI_PROJECT=proj_1234567890
+```
+
+### OPENAI_ORGANIZATION
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Optional OpenAI organization identifier to send with requests.
+
+**Example**:
+```bash
+OPENAI_ORGANIZATION=org_1234567890
+```
+
+### ANTHROPIC_API_KEY
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Anthropic API key. When set, the Claude models appear in the chat model picker.
+
+**Example**:
+```bash
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key-here
+```
+
+### ANTHROPIC_BASE_URL
+
+**Type**: `string`
+**Required**: No
+**Default**: Anthropic default API base URL
+
+Override the Anthropic API base URL. Useful for proxies, gateways, or Anthropic-compatible endpoints.
+
+**Example**:
+```bash
+ANTHROPIC_BASE_URL=https://your-anthropic-endpoint.example.com
+```
+
+### ANTHROPIC_TOKEN
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Optional auth token sent to the Anthropic provider in addition to the API key. Use this only if your Anthropic-compatible gateway requires it.
+
+**Example**:
+```bash
+ANTHROPIC_TOKEN=your-auth-token
+```
+
+### ANTHROPIC_VERSION
+
+**Type**: `string`
+**Required**: No
+**Default**: Provider default
+
+Override the Anthropic API version header sent with requests.
+
+**Example**:
+```bash
+ANTHROPIC_VERSION=2023-06-01
+```
+
+## Email
+
+### RESEND_API_KEY
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Resend API key for sending transactional emails (password resets, invitations, etc.).
+
+**Example**:
+```bash
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+```
+
+<Callout>
+Get your API key from [resend.com](https://resend.com). Make sure to verify your sender email domain.
+</Callout>
+
+### EMAIL_SENDER
+
+**Type**: `string`
+**Required**: No
+**Default**: `hello@openpanel.dev`
+
+Email address used as the sender for transactional emails. Applies to both Resend and SMTP transports.
+
+**Example**:
+```bash
+EMAIL_SENDER=noreply@yourdomain.com
+```
+
+### SMTP_HOST
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+SMTP server hostname. When set, OpenPanel uses SMTP to send emails instead of Resend. Takes priority over `RESEND_API_KEY` if both are configured.
+
+**Example**:
+```bash
+SMTP_HOST=smtp.example.com
+```
+
+### SMTP_PORT
+
+**Type**: `number`
+**Required**: No
+**Default**: `587`
+
+SMTP server port.
+
+**Example**:
+```bash
+SMTP_PORT=587
+```
+
+### SMTP_SECURE
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Use TLS for the SMTP connection. Set to `true` when using port `465`.
+
+**Example**:
+```bash
+SMTP_SECURE=true
+```
+
+### SMTP_USER
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+SMTP authentication username. Leave unset if your server does not require authentication.
+
+**Example**:
+```bash
+SMTP_USER=smtp-user@example.com
+```
+
+### SMTP_PASS
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+SMTP authentication password.
+
+**Example**:
+```bash
+SMTP_PASS=your-smtp-password
+```
+
+<Callout>
+Set `SMTP_HOST` to enable SMTP. If both `SMTP_HOST` and `RESEND_API_KEY` are present, SMTP takes priority. If neither is set, emails are logged to the console (useful for development).
+In case of using Resend, the sender email must be verified in your Resend account.
+</Callout>
+
+<Callout type="warn">
+If `SMTP_HOST` is set and an SMTP send attempt fails, the system will **not** automatically fall back to `RESEND_API_KEY` — the email will be silently dropped. To use Resend instead, unset `SMTP_HOST`.
+</Callout>
+
+## OAuth & Integrations
+
+### SLACK_CLIENT_ID
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Slack OAuth client ID for Slack integration.
+
+**Example**:
+```bash
+SLACK_CLIENT_ID=1234567890.1234567890
+```
+
+### SLACK_CLIENT_SECRET
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Slack OAuth client secret for Slack integration.
+
+**Example**:
+```bash
+SLACK_CLIENT_SECRET=your-slack-client-secret
+```
+
+### SLACK_OAUTH_REDIRECT_URL
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Slack OAuth redirect URL. Must match the redirect URI configured in your Slack app.
+
+**Example**:
+```bash
+SLACK_OAUTH_REDIRECT_URL=https://analytics.example.com/api/integrations/slack/callback
+```
+
+### SLACK_STATE_SECRET
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Secret for signing Slack OAuth state parameter.
+
+**Example**:
+```bash
+SLACK_STATE_SECRET=your-state-secret
+```
+
+## Self-hosting
+
+### SELF_HOSTED
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Enable self-hosted mode. Set to `true` or `1` to enable self-hosting features. Used by both the dashboard frontend and API service.
+
+**Example**:
+```bash
+SELF_HOSTED=true
+```
+
+## Worker & Queue
+
+### WORKER_PORT
+
+**Type**: `number`
+**Required**: No
+**Default**: `3000`
+
+Port for the worker service to listen on.
+
+**Example**:
+```bash
+WORKER_PORT=3000
+```
+
+### DISABLE_BULLBOARD
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Disable BullMQ board UI. Set to `true` or `1` to disable the queue monitoring dashboard.
+
+**Example**:
+```bash
+DISABLE_BULLBOARD=true
+```
+
+### DISABLE_WORKERS
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Disable all worker processes. Set to `true` or `1` to disable background job processing.
+
+**Example**:
+```bash
+DISABLE_WORKERS=true
+```
+
+### ENABLED_QUEUES
+
+**Type**: `string` (comma-separated)
+**Required**: No
+**Default**: All queues enabled
+
+Comma-separated list of queue names to enable. Available queues: `events`, `events_kafka`, `sessions`, `cron`, `notification`, `misc`, `import`.
+
+**Example**:
+```bash
+ENABLED_QUEUES=events,sessions,cron
+```
+
+<Callout>
+Enable `events_kafka` to run the Kafka-based events consumer alongside (or instead of) the default `events` queue. See the [Event Streaming (Kafka)](#event-streaming-kafka) section for the full configuration. A common high-throughput layout is to run one worker pool with `ENABLED_QUEUES=events_kafka` and another pool with everything else.
+</Callout>
+
+### EVENT_JOB_CONCURRENCY
+
+**Type**: `number`
+**Required**: No
+**Default**: `10`
+
+Number of concurrent event processing jobs per worker.
+
+**Example**:
+```bash
+EVENT_JOB_CONCURRENCY=20
+```
+
+### EVENT_BLOCKING_TIMEOUT_SEC
+
+**Type**: `number`
+**Required**: No
+**Default**: `1`
+
+Blocking timeout in seconds for event queue workers.
+
+**Example**:
+```bash
+EVENT_BLOCKING_TIMEOUT_SEC=2
+```
+
+### EVENTS_GROUP_QUEUES_SHARDS
+
+**Type**: `number`
+**Required**: No
+**Default**: `1`
+
+Number of shards for the events group queue. Increase for better performance with high event volume.
+
+**Example**:
+```bash
+EVENTS_GROUP_QUEUES_SHARDS=4
+```
+
+### QUEUE_CLUSTER
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Enable Redis cluster mode for queues. When enabled, queue names are wrapped with `{}` for Redis cluster sharding.
+
+**Example**:
+```bash
+QUEUE_CLUSTER=true
+```
+
+### ORDERING_DELAY_MS
+
+**Type**: `number`
+**Required**: No
+**Default**: `100`
+
+Delay in milliseconds to hold events for correct ordering when events arrive out of order.
+
+**Example**:
+```bash
+ORDERING_DELAY_MS=200
+```
+
+<Callout type="warn">
+Should not exceed 500ms. Higher values may cause delays in event processing.
+</Callout>
+
+### AUTO_BATCH_MAX_WAIT_MS
+
+**Type**: `number`
+**Required**: No
+**Default**: `0` (disabled)
+
+Maximum wait time in milliseconds for auto-batching events. Experimental feature.
+
+**Example**:
+```bash
+AUTO_BATCH_MAX_WAIT_MS=100
+```
+
+<Callout type="warn">
+⚠️ **Experimental**: This feature is experimental and not used in production. Do not use unless you have a good understanding of the implications and specific performance requirements.
+</Callout>
+
+### AUTO_BATCH_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: `0` (disabled)
+
+Batch size for auto-batching events. Experimental feature.
+
+**Example**:
+```bash
+AUTO_BATCH_SIZE=100
+```
+
+<Callout type="warn">
+⚠️ **Experimental**: This feature is experimental and not used in production. Do not use unless you have a good understanding of the implications and specific performance requirements.
+</Callout>
+
+## Event Streaming (Kafka)
+
+OpenPanel can optionally ingest events through a Kafka-compatible broker (Kafka itself, Redpanda, etc.) instead of the default Redis-backed events queue. This is useful at high throughput, where many consumer instances can process partitions in parallel.
+
+Routing is all-or-nothing: if `KAFKA_BROKERS` is set, every event is produced to the Kafka topic; otherwise all events stay on the default Redis-backed `events` queue. Set `ENABLED_QUEUES=events_kafka` on the worker(s) that should consume from Kafka.
+
+<Callout>
+The client speaks the Kafka wire protocol via [kafkajs](https://kafka.js.org/), so any Kafka-compatible broker works. The bundled `docker-compose.yml` uses [Redpanda](https://redpanda.com/) as a lightweight, single-binary option, but you can point `KAFKA_BROKERS` at any Kafka cluster.
+</Callout>
+
+### KAFKA_BROKERS
+
+**Type**: `string` (comma-separated)
+**Required**: Yes (to enable the Kafka path)
+**Default**: None
+
+Comma-separated list of Kafka broker addresses. When set, all events are produced to Kafka; when unset, the Kafka producer/consumer is disabled and all events fall back to the default Redis-backed queue.
+
+**Example**:
+```bash
+KAFKA_BROKERS=redpanda:9092
+# Multiple brokers
+KAFKA_BROKERS=kafka-1:9092,kafka-2:9092,kafka-3:9092
+```
+
+### KAFKA_EVENTS_TOPIC
+
+**Type**: `string`
+**Required**: No
+**Default**: `events`
+
+Name of the Kafka topic used for incoming events.
+
+**Example**:
+```bash
+KAFKA_EVENTS_TOPIC=openpanel-events
+```
+
+### KAFKA_CONSUMER_GROUP
+
+**Type**: `string`
+**Required**: No
+**Default**: `openpanel-events`
+
+Kafka consumer group ID used by the worker. All worker replicas with the same group ID share partition assignments cooperatively.
+
+**Example**:
+```bash
+KAFKA_CONSUMER_GROUP=openpanel-events
+```
+
+### KAFKA_CLIENT_ID
+
+**Type**: `string`
+**Required**: No
+**Default**: `openpanel`
+
+Kafka client ID used by both producer and consumer. Shows up in broker logs and metrics.
+
+**Example**:
+```bash
+KAFKA_CLIENT_ID=openpanel-prod
+```
+
+### KAFKA_PARTITIONS_CONCURRENT
+
+**Type**: `number`
+**Required**: No
+**Default**: `8`
+
+Maximum number of partitions a single consumer instance processes concurrently. Has no effect beyond the number of partitions actually assigned to this consumer.
+
+**Example**:
+```bash
+KAFKA_PARTITIONS_CONCURRENT=12
+```
+
+### KAFKA_MIN_MESSAGES
+
+**Type**: `number`
+**Required**: No
+**Default**: `1`
+
+Minimum number of messages the broker should accumulate before responding to a fetch request (each message is assumed to be ~1 KiB internally). Higher values create larger batches at the cost of slightly higher latency.
+
+**Example**:
+```bash
+KAFKA_MIN_MESSAGES=16
+```
+
+### KAFKA_MAX_WAIT_MS
+
+**Type**: `number`
+**Required**: No
+**Default**: `500`
+
+Maximum time in milliseconds the broker waits to fulfil `KAFKA_MIN_MESSAGES` before returning a fetch response. Caps end-to-end latency under low traffic.
+
+**Example**:
+```bash
+KAFKA_MAX_WAIT_MS=200
+```
+
+### KAFKA_MAX_MESSAGES_PER_PARTITION
+
+**Type**: `number`
+**Required**: No
+**Default**: `256`
+
+Maximum number of messages returned per partition per fetch request (each message is assumed to be ~1 KiB internally). Caps in-memory batch size during backlog recovery and bounds the worst-case time the consumer spends on a single batch.
+
+**Example**:
+```bash
+KAFKA_MAX_MESSAGES_PER_PARTITION=512
+```
+
+### KAFKA_SESSION_TIMEOUT_MS
+
+**Type**: `number`
+**Required**: No
+**Default**: `30000`
+
+Consumer group session timeout in milliseconds. The broker considers a consumer dead and rebalances its partitions if it does not heartbeat within this window.
+
+**Example**:
+```bash
+KAFKA_SESSION_TIMEOUT_MS=45000
+```
+
+### KAFKA_HEARTBEAT_INTERVAL_MS
+
+**Type**: `number`
+**Required**: No
+**Default**: `3000`
+
+How often, in milliseconds, the consumer sends background heartbeats to the broker. Should be well below `KAFKA_SESSION_TIMEOUT_MS`.
+
+**Example**:
+```bash
+KAFKA_HEARTBEAT_INTERVAL_MS=3000
+```
+
+## Buffers
+
+### SESSION_BUFFER_BATCH_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: Buffer-specific default
+
+Batch size for session buffer operations.
+
+**Example**:
+```bash
+SESSION_BUFFER_BATCH_SIZE=5000
+```
+
+### SESSION_BUFFER_CHUNK_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: Buffer-specific default
+
+Chunk size for session buffer operations.
+
+**Example**:
+```bash
+SESSION_BUFFER_CHUNK_SIZE=1000
+```
+
+### EVENT_BUFFER_BATCH_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: `4000`
+
+Batch size for event buffer operations.
+
+**Example**:
+```bash
+EVENT_BUFFER_BATCH_SIZE=5000
+```
+
+### EVENT_BUFFER_CHUNK_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: `1000`
+
+Chunk size for event buffer operations.
+
+**Example**:
+```bash
+EVENT_BUFFER_CHUNK_SIZE=2000
+```
+
+### PROFILE_BUFFER_BATCH_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: Buffer-specific default
+
+Batch size for profile buffer operations.
+
+**Example**:
+```bash
+PROFILE_BUFFER_BATCH_SIZE=5000
+```
+
+### PROFILE_BUFFER_CHUNK_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: Buffer-specific default
+
+Chunk size for profile buffer operations.
+
+**Example**:
+```bash
+PROFILE_BUFFER_CHUNK_SIZE=1000
+```
+
+### PROFILE_BUFFER_TTL_IN_SECONDS
+
+**Type**: `number`
+**Required**: No
+**Default**: Buffer-specific default
+
+Time-to-live in seconds for profile buffer entries.
+
+**Example**:
+```bash
+PROFILE_BUFFER_TTL_IN_SECONDS=3600
+```
+
+### BOT_BUFFER_BATCH_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: Buffer-specific default
+
+Batch size for bot detection buffer operations.
+
+**Example**:
+```bash
+BOT_BUFFER_BATCH_SIZE=1000
+```
+
+## Analytics Behavior
+
+### FUNNEL_NON_STRICT_ORDERING
+
+**Type**: `boolean` (`1` or `true`)
+**Required**: No
+**Default**: unset (strict ordering)
+
+Funnels use ClickHouse's `windowFunnel` in `strict_increase` mode by default: every step's timestamp must be strictly greater than the previous step's. Setting this variable switches funnels to non-strict ordering (`>=`), where steps sharing the same timestamp still count as an ordered sequence — matching how Mixpanel and Amplitude evaluate funnels. Useful for server-side senders, batched SDKs, or imported data with coarse timestamps.
+
+**Example**:
+```bash
+FUNNEL_NON_STRICT_ORDERING=1
+```
+
+## Performance & Tuning
+
+### EVENT_LIST_MAX_LOOKBACK_DAYS
+
+**Type**: `number` (whole days, positive integer)
+**Required**: No
+**Default**: `1825` (5 years)
+
+Ceiling for the empty-result lookback on the event list. When a page's cursor window matches nothing, the window doubles and retries until it reaches this many days. With filters that no index can prune (e.g. a properties value) each retry is a full scan of its window, so large deployments can bound the worst case with a small, human-sized value. Invalid values (non-integer, zero, negative) keep the default.
+
+**Example**:
+```bash
+EVENT_LIST_MAX_LOOKBACK_DAYS=7
+```
+
+### SESSION_LIST_MAX_LOOKBACK_DAYS
+
+**Type**: `number` (whole days, positive integer)
+**Required**: No
+**Default**: `365`
+
+Same ceiling for the session list, which has its own default. Invalid values keep the default.
+
+**Example**:
+```bash
+SESSION_LIST_MAX_LOOKBACK_DAYS=7
+```
+
+### COHORT_QUERY_MEMORY_LIMIT_BYTES
+
+**Type**: `number` (bytes, positive integer)
+**Required**: No
+**Default**: unset (server defaults govern)
+
+Hard memory cap applied to property-cohort queries, which aggregate every profile row for a project and are the one cohort query that can outgrow the server's headroom. When set without `COHORT_QUERY_SPILL_BYTES`, the spill threshold is derived as a third of this limit so the query spills to disk before it can be killed. Unset (together with the spill variable) applies no per-query settings at all. Invalid values are ignored.
+
+**Example**:
+```bash
+COHORT_QUERY_MEMORY_LIMIT_BYTES=1400000000
+```
+
+### COHORT_QUERY_SPILL_BYTES
+
+**Type**: `number` (bytes, positive integer)
+**Required**: No
+**Default**: unset (derived as `COHORT_QUERY_MEMORY_LIMIT_BYTES / 3` when that is set)
+
+Point past which a property-cohort GROUP BY spills to disk instead of growing in memory. Must sit below the memory limit — a threshold at or above the kill limit means the query dies before it ever spills, so inverted pairs are re-derived. Invalid values are ignored.
+
+**Example**:
+```bash
+COHORT_QUERY_SPILL_BYTES=314572800
+```
+
+### IMPORT_BATCH_SIZE
+
+**Type**: `number`
+**Required**: No
+**Default**: `5000`
+
+Batch size for data import operations.
+
+**Example**:
+```bash
+IMPORT_BATCH_SIZE=10000
+```
+
+### EVENT_PROPERTY_VALUE_AUTOCOMPLETE_LIMIT
+
+**Type**: `number` (positive integer)  
+**Required**: No  
+**Default**: `500`
+
+Cap on distinct values returned per event property to the filter autocomplete. High-cardinality keys (ids, urls, tokens) can hold millions of distinct values; the most recent ones win. Invalid values keep the default.
+
+**Example**:
+```bash
+EVENT_PROPERTY_VALUE_AUTOCOMPLETE_LIMIT=1000
+```
+
+### IP_HEADER_ORDER
+
+**Type**: `string` (comma-separated)
+**Required**: No
+**Default**: See [default order](https://github.com/Openpanel-dev/openpanel/blob/main/packages/common/server/get-client-ip.ts)
+
+Custom order of HTTP headers to check for client IP address. Useful when behind specific proxies or CDNs.
+
+**Example**:
+```bash
+IP_HEADER_ORDER=cf-connecting-ip,x-real-ip,x-forwarded-for
+```
+
+<Callout>
+The default order includes: `openpanel-client-ip`, `cf-connecting-ip`, `true-client-ip`, `x-client-ip`, `x-forwarded-for`, `x-real-ip`, and others. See the [source code](https://github.com/Openpanel-dev/openpanel/blob/main/packages/common/server/get-client-ip.ts) for the complete default list.
+</Callout>
+
+### SHUTDOWN_GRACE_PERIOD_MS
+
+**Type**: `number`
+**Required**: No
+**Default**: `5000`
+
+Grace period in milliseconds for graceful shutdown of services.
+
+**Example**:
+```bash
+SHUTDOWN_GRACE_PERIOD_MS=10000
+```
+
+### API_PORT
+
+**Type**: `number`
+**Required**: No
+**Default**: `3000`
+
+Port for the API service to listen on.
+
+**Example**:
+```bash
+API_PORT=3000
+```
+
+### API_HOST
+
+**Type**: `string`
+**Required**: No
+**Default**: `0.0.0.0` (production) / `localhost` (development)
+
+Host address for the API service to bind to. Set to `::` to enable IPv6 support (useful for platforms like Railway that use IPv6 for internal networking).
+
+**Example**:
+```bash
+# Default IPv4 only
+API_HOST=0.0.0.0
+
+# IPv6 (dual-stack, accepts both IPv4 and IPv6)
+API_HOST=::
+```
+
+<Callout>
+Use `API_HOST=::` when deploying on platforms like Railway where private networking requires IPv6. The `::` address enables dual-stack mode, accepting both IPv4 and IPv6 connections on most systems.
+</Callout>
+
+## Logging
+
+### LOG_LEVEL
+
+**Type**: `string`
+**Required**: No
+**Default**: `info`
+
+Logging level. Options: `error`, `warn`, `info`, `debug`.
+
+**Example**:
+```bash
+LOG_LEVEL=debug
+```
+
+### LOG_SILENT
+
+**Type**: `boolean`
+**Required**: No
+**Default**: `false`
+
+Disable all logging output. Set to `true` to silence logs.
+
+**Example**:
+```bash
+LOG_SILENT=true
+```
+
+### LOG_PREFIX
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+Prefix for log messages. Useful for identifying logs from different services.
+
+**Example**:
+```bash
+LOG_PREFIX=api
+```
+
+### HYPERDX_API_KEY
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+HyperDX API key for sending logs to HyperDX for monitoring and analysis.
+
+**Example**:
+```bash
+HYPERDX_API_KEY=your-hyperdx-api-key
+```
+
+## Geo
+
+### MAXMIND_LICENSE_KEY
+
+**Type**: `string`
+**Required**: No
+**Default**: None
+
+MaxMind GeoLite2 license key for downloading GeoIP databases.
+
+**Example**:
+```bash
+MAXMIND_LICENSE_KEY=your-maxmind-license-key
+```
+
+<Callout>
+Get your license key from [MaxMind](https://www.maxmind.com/en/accounts/current/license-key). Required for downloading GeoIP databases.
+</Callout>
+
+## Quick Reference
+
+### Required Variables
+
+For a basic self-hosted installation, these variables are required:
+
+- `DATABASE_URL` - PostgreSQL connection
+- `REDIS_URL` - Redis connection
+- `CLICKHOUSE_URL` - ClickHouse connection
+- `API_URL` - API endpoint URL
+- `DASHBOARD_URL` - Dashboard URL
+- `COOKIE_SECRET` - Session encryption secret
+
+### Optional but Recommended
+
+- `RESEND_API_KEY` or `SMTP_HOST` - For email features (pick one)
+- `EMAIL_SENDER` - Email sender address
+- `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` - For the in-app AI chat assistant
+
+### See Also
+
+- [Deploy with Docker Compose](/docs/self-hosting/deploy-docker-compose)
+- [Deploy with Coolify](/docs/self-hosting/deploy-coolify)
+- [Deploy with Dokploy](/docs/self-hosting/deploy-dokploy)
+- [Deploy on Kubernetes](/docs/self-hosting/deploy-kubernetes)

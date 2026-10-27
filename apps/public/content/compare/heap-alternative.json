@@ -1,0 +1,483 @@
+{
+  "slug": "heap-alternative",
+  "page_type": "alternative",
+  "seo": {
+    "title": "Best Heap Alternatives 2026 — After the Contentsquare Acquisition",
+    "description": "Heap was acquired by Contentsquare in 2023. If you're re-evaluating, OpenPanel is an open-source alternative with transparent pricing from $2.50/month, full self-hosting, and no sales call required.",
+    "noindex": false
+  },
+  "hero": {
+    "heading": "Best Heap Alternative",
+    "subheading": "Looking for Heap's product analytics without the black-box pricing and vendor lock-in? OpenPanel offers transparent event-based pricing, full self-hosting, and AGPL-3.0 licensed open source code\u2014giving you control over your analytics.",
+    "badges": [
+      "Open-source",
+      "Transparent pricing",
+      "Self-hostable",
+      "No vendor lock-in"
+    ]
+  },
+  "competitor": {
+    "name": "Heap",
+    "logo": "/logos/heap.svg",
+    "url": "https://heap.io",
+    "short_description": "Product analytics platform known for autocapture technology that automatically tracks all user interactions. Now part of Contentsquare.",
+    "founded": 2013,
+    "headquarters": "San Francisco, CA"
+  },
+  "overview": {
+    "title": "Why consider OpenPanel over Heap?",
+    "paragraphs": [
+      "Heap was acquired by Contentsquare in September 2023. For many teams, that acquisition raised real questions: Will pricing change? Will the product roadmap shift to serve Contentsquare's enterprise customers? Will independent support continue? These concerns, combined with Heap's opaque pricing model and cloud-only architecture, have driven a wave of teams to evaluate alternatives.",
+      "OpenPanel takes a different approach with explicit event tracking, giving you precise control over what you measure and how. While you lose Heap's retroactive analysis capability, you gain transparency \u2014 both in your data collection and your costs. OpenPanel's pricing is publicly listed and event-based, starting at just $2.50 per month, compared to Heap's sales-required pricing that reportedly starts at $3,600 per year. And unlike Heap, OpenPanel is fully self-hostable and open source \u2014 no acquisition can change that.",
+      "For teams that value data sovereignty, OpenPanel offers full self-hosting via a simple Docker Compose deployment \u2014 a one-command ./setup wizard walks you through configuration and brings the whole stack up in minutes, something Heap doesn't provide at all. Being open source under the AGPL-3.0 license means you can inspect every line of code, contribute improvements, and avoid the vendor lock-in risk that comes with Heap's proprietary, now-Contentsquare-owned platform.",
+      "If you prefer intentional, controlled analytics over autocapture-everything, want transparent pricing without sales calls, and need the option to self-host \u2014 OpenPanel gives you solid product analytics with full ownership of your data."
+    ]
+  },
+  "summary_comparison": {
+    "title": "OpenPanel vs Heap: Which is right for you?",
+    "intro": "Both platforms provide product analytics, but with different philosophies. Heap's autocapture records everything automatically; OpenPanel uses explicit tracking for better control.",
+    "one_liner": "OpenPanel is transparent, self-hostable, and open source; Heap offers autocapture and retroactive analysis with opaque enterprise pricing.",
+    "best_for_openpanel": [
+      "Teams needing transparent, predictable pricing without sales calls",
+      "Organizations requiring self-hosting for data sovereignty",
+      "Open source requirements for transparency and auditability",
+      "Teams wanting controlled data collection without bloat",
+      "Startups avoiding vendor lock-in after Contentsquare acquisition"
+    ],
+    "best_for_competitor": [
+      "Teams wanting autocapture to avoid manual event tracking",
+      "Organizations needing retroactive analysis for new events",
+      "Companies requiring visual event definition tools",
+      "Enterprise teams with budget for premium features",
+      "Teams needing heatmaps (a Heap add-on; OpenPanel has session replay but no heatmaps)"
+    ]
+  },
+  "highlights": {
+    "title": "Key differences at a glance",
+    "intro": "Here's how OpenPanel and Heap compare on the factors that matter most.",
+    "items": [
+      {
+        "label": "Pricing transparency",
+        "openpanel": "Public, event-based pricing",
+        "competitor": "Opaque (requires sales call)"
+      },
+      {
+        "label": "Self-hosting",
+        "openpanel": "Yes, completely free",
+        "competitor": "No (cloud only)"
+      },
+      {
+        "label": "Open source",
+        "openpanel": "Yes (AGPL-3.0)",
+        "competitor": "No (proprietary)"
+      },
+      {
+        "label": "Autocapture",
+        "openpanel": "Manual event tracking",
+        "competitor": "Automatic capture"
+      },
+      {
+        "label": "Retroactive analysis",
+        "openpanel": "Tracked events only",
+        "competitor": "Full historical analysis"
+      }
+    ]
+  },
+  "feature_comparison": {
+    "title": "Feature comparison",
+    "intro": "OpenPanel covers core product analytics, while Heap extends into autocapture and visual analytics tools.",
+    "groups": [
+      {
+        "group": "Core analytics",
+        "features": [
+          {
+            "name": "Page views & sessions",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Event tracking",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Funnels",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Retention analysis",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "User profiles",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Cohorts",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Custom dashboards",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Real-time data",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          }
+        ]
+      },
+      {
+        "group": "Advanced features",
+        "features": [
+          {
+            "name": "Autocapture",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "Heap automatically captures all interactions"
+          },
+          {
+            "name": "Retroactive analysis",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "Heap can analyze historical data for new events"
+          },
+          {
+            "name": "Visual event definition",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "Heap's no-code event creation"
+          },
+          {
+            "name": "A/B testing",
+            "openpanel": true,
+            "competitor": false,
+            "notes": null
+          },
+          {
+            "name": "Session replay",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel includes rrweb-based session replay (opt-in); Heap offers it as a paid add-on"
+          },
+          {
+            "name": "Heatmaps",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "Heap offers as paid add-on; OpenPanel does not have heatmaps"
+          },
+          {
+            "name": "Path analysis",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          }
+        ]
+      },
+      {
+        "group": "Privacy & deployment",
+        "features": [
+          {
+            "name": "Self-hosting",
+            "openpanel": true,
+            "competitor": false,
+            "notes": null
+          },
+          {
+            "name": "Open source",
+            "openpanel": true,
+            "competitor": false,
+            "notes": null
+          },
+          {
+            "name": "GDPR compliant",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Data export",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "EU data residency",
+            "openpanel": "Via self-hosting",
+            "competitor": "Premier plan only",
+            "notes": null
+          }
+        ]
+      },
+      {
+        "group": "Integrations & data",
+        "features": [
+          {
+            "name": "REST API",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Data warehouse export",
+            "openpanel": "Coming 2026",
+            "competitor": true,
+            "notes": "Heap Connect exports to major warehouses. OpenPanel has an export API today, with native data-warehouse export (S3/GCS) on the roadmap for 2026."
+          },
+          {
+            "name": "Segment integration",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "OpenPanel has no Segment integration (Slack/Discord/webhook + export API only)."
+          },
+          {
+            "name": "100+ integrations",
+            "openpanel": false,
+            "competitor": true,
+            "notes": null
+          }
+        ]
+      }
+    ]
+  },
+  "technical_comparison": {
+    "title": "Technical comparison",
+    "intro": "For developers evaluating analytics tools, here's how the SDKs and technical implementations compare.",
+    "items": [
+      {
+        "label": "SDK size (JS)",
+        "openpanel": "~2.3 KB gzipped",
+        "competitor": "Larger (autocapture overhead)",
+        "notes": "OpenPanel's lighter SDK means faster page loads"
+      },
+      {
+        "label": "Supported platforms",
+        "openpanel": [
+          "JavaScript",
+          "React",
+          "Next.js",
+          "Vue",
+          "Astro",
+          "Remix",
+          "Express",
+          "React Native",
+          "Flutter",
+          "iOS",
+          "Android",
+          "Node.js",
+          "Python",
+          "Ruby",
+          "Java",
+          "Rust",
+          "PHP"
+        ],
+        "competitor": [
+          "JavaScript",
+          "iOS",
+          "Android",
+          "React Native",
+          "Flutter"
+        ],
+        "notes": null
+      },
+      {
+        "label": "Open source",
+        "openpanel": "Yes (AGPL-3.0)",
+        "competitor": "No",
+        "notes": null
+      },
+      {
+        "label": "Self-hosted deployment",
+        "openpanel": "Docker Compose, guided setup wizard",
+        "competitor": "Not available",
+        "notes": null
+      },
+      {
+        "label": "Database",
+        "openpanel": "ClickHouse + PostgreSQL",
+        "competitor": "Proprietary",
+        "notes": null
+      },
+      {
+        "label": "Tracking method",
+        "openpanel": "Explicit event tracking",
+        "competitor": "Autocapture everything",
+        "notes": "Different philosophies on data collection"
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Pricing comparison",
+    "intro": "OpenPanel offers transparent pricing. Heap requires sales calls for anything beyond the free tier.",
+    "openpanel": {
+      "model": "Event-based, transparent",
+      "description": "Simple pricing starting at $2.50/month for 5,000 events. Self-host for free with unlimited events. All features included at every tier."
+    },
+    "competitor": {
+      "model": "Session-based, opaque",
+      "description": "Free tier: 10K sessions/month, 6 months data retention. Growth/Pro/Premier plans require custom quotes from sales. Reports suggest Growth plans start around $3,600/year.",
+      "free_tier": "Yes (10K sessions/month)",
+      "pricing_url": "https://heap.io/pricing"
+    }
+  },
+  "migration": {
+    "title": "Migrating from Heap to OpenPanel",
+    "intro": "Switching from Heap requires rethinking your tracking strategy since OpenPanel doesn't autocapture.",
+    "difficulty": "moderate",
+    "estimated_time": "2-8 hours depending on event complexity",
+    "steps": [
+      {
+        "title": "Audit your Heap events",
+        "description": "Review which events you actually use in Heap dashboards and funnels. Identify the essential events since OpenPanel won't autocapture everything."
+      },
+      {
+        "title": "Install OpenPanel SDK",
+        "description": "Replace Heap's snippet with OpenPanel's lightweight SDK. The SDK is smaller and won't autocapture."
+      },
+      {
+        "title": "Implement event tracking",
+        "description": "Unlike Heap's autocapture, OpenPanel requires explicit event tracking. Instrument the key events you identified using op.track() calls."
+      },
+      {
+        "title": "Set up user identification",
+        "description": "Replace heap.identify() with OpenPanel's identify() method. Both platforms support similar user identification patterns."
+      },
+      {
+        "title": "Recreate funnels and reports",
+        "description": "Build your conversion funnels, retention charts, and dashboards in OpenPanel."
+      }
+    ],
+    "sdk_compatibility": {
+      "similar_api": false,
+      "notes": "Different tracking philosophies: Heap autocaptures everything, OpenPanel requires explicit tracking. Plan to instrument your key events."
+    },
+    "historical_data": {
+      "can_import": false,
+      "notes": "Heap's proprietary data format makes historical migration complex. Contact us if you need assistance."
+    }
+  },
+  "use_cases": {
+    "title": "Where OpenPanel is a better fit than Heap",
+    "intro": "OpenPanel shines for teams that value transparency, control, and avoiding vendor lock-in.",
+    "items": [
+      {
+        "title": "Teams needing transparent pricing",
+        "description": "Heap's pricing is opaque and requires sales calls. OpenPanel offers transparent event-based pricing so you always know what you'll pay.",
+        "icon": "dollar"
+      },
+      {
+        "title": "Self-hosting and data sovereignty",
+        "description": "Heap is cloud-only. OpenPanel can be fully self-hosted with Docker Compose, keeping all data on your own infrastructure.",
+        "icon": "server"
+      },
+      {
+        "title": "Open source requirements",
+        "description": "Heap is completely proprietary. OpenPanel is fully open source under AGPL-3.0 license, allowing inspection and modification.",
+        "icon": "code"
+      },
+      {
+        "title": "Controlled data collection",
+        "description": "Heap's autocapture collects everything by default. OpenPanel gives you explicit control over what data is collected.",
+        "icon": "shield"
+      },
+      {
+        "title": "Avoiding vendor lock-in",
+        "description": "Heap was acquired by Contentsquare. OpenPanel's open source model prevents vendor lock-in and pricing uncertainty.",
+        "icon": "lock"
+      }
+    ]
+  },
+  "faqs": {
+    "title": "Frequently asked questions",
+    "intro": "Common questions about switching from Heap to OpenPanel.",
+    "items": [
+      {
+        "question": "What is Heap's autocapture and why might I not want it?",
+        "answer": "Heap's autocapture automatically records every user interaction without manual tracking code. While convenient, it can lead to data bloat, higher costs, privacy concerns (capturing sensitive data accidentally), and difficulty managing what's tracked. OpenPanel's explicit tracking gives you full control over data collection."
+      },
+      {
+        "question": "Can I self-host Heap?",
+        "answer": "No. Heap is cloud-only with no self-hosting option. Your data always resides on Heap/Contentsquare's infrastructure. OpenPanel offers full self-hosting with Docker Compose for complete data ownership."
+      },
+      {
+        "question": "Is Heap open source?",
+        "answer": "No. Heap is entirely proprietary with closed-source code. OpenPanel is fully open source under the AGPL-3.0 license."
+      },
+      {
+        "question": "Why is Heap's pricing not public?",
+        "answer": "Heap only shows its Free tier publicly. Growth, Pro, and Premier plans require contacting sales for custom quotes. Reports suggest Growth plans start around $3,600/year, with costs scaling significantly at higher volumes."
+      },
+      {
+        "question": "What happened to Heap? Was it acquired?",
+        "answer": "Yes. Contentsquare acquired Heap in September 2023. Heap is now part of Contentsquare's experience intelligence platform. This acquisition may affect Heap's product direction, pricing, and independence."
+      },
+      {
+        "question": "Does OpenPanel have retroactive analysis like Heap?",
+        "answer": "No. Heap's autocapture enables retroactive analysis. OpenPanel only analyzes events that were explicitly tracked. This is a trade-off: Heap offers flexibility but with data bloat; OpenPanel offers control but requires upfront planning."
+      },
+      {
+        "question": "Does OpenPanel have session replay?",
+        "answer": "Yes. OpenPanel includes rrweb-based session replay (opt-in via sessionReplay: { enabled: true }), with unlimited recordings and 30-day retention. Heap offers session replay as an add-on on Pro and Premier plans. OpenPanel does not have heatmaps, however."
+      }
+    ]
+  },
+  "related_links": {
+    "guides": [
+      {
+        "title": "Track custom events",
+        "url": "/guides/track-custom-events"
+      },
+      {
+        "title": "React analytics setup",
+        "url": "/guides/react-analytics"
+      },
+      {
+        "title": "Next.js analytics setup",
+        "url": "/guides/nextjs-analytics"
+      }
+    ],
+    "articles": [
+      {
+        "title": "Best product analytics tools in 2026",
+        "url": "/articles/mixpanel-alternatives"
+      },
+      {
+        "title": "9 best open source web analytics tools",
+        "url": "/articles/open-source-web-analytics"
+      }
+    ],
+    "alternatives": [
+      {
+        "name": "Mixpanel",
+        "url": "/compare/mixpanel-alternative"
+      },
+      {
+        "name": "PostHog",
+        "url": "/compare/posthog-alternative"
+      }
+    ]
+  },
+  "ctas": {
+    "primary": {
+      "label": "Start with OpenPanel",
+      "href": "https://dashboard.openpanel.dev/onboarding"
+    },
+    "secondary": {
+      "label": "View on GitHub",
+      "href": "https://github.com/Openpanel-dev/openpanel"
+    }
+  }
+}

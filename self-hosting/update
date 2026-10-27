@@ -1,0 +1,8 @@
+#!/bin/bash
+
+git pull
+
+echo "Updating services"
+docker compose up -d --pull always --remove-orphans
+
+echo "Done"

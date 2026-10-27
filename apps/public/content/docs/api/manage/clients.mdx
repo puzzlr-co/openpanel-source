@@ -1,0 +1,36 @@
+---
+title: Clients
+description: Manage API clients for your OpenPanel projects. Create, read, update, and delete clients with different access levels.
+---
+
+## Authentication
+
+Requires a `root` client. See the [Authentication](/docs/api/authentication) guide.
+
+## Base URL
+
+```
+https://api.openpanel.dev/manage/clients
+```
+
+## Client types
+
+| Type | Description |
+|------|-------------|
+| `write` | Ingest events and profile updates |
+| `read` | Query analytics data (insights, export) |
+| `root` | Full access — manage API, read, and write |
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/manage/clients` | List all clients (optionally filter by `projectId`) |
+| `GET` | `/manage/clients/{id}` | Get a specific client |
+| `POST` | `/manage/clients` | Create a new client |
+| `PATCH` | `/manage/clients/{id}` | Update client name |
+| `DELETE` | `/manage/clients/{id}` | Permanently delete a client |
+
+Client secrets are only returned once at creation time and are never retrievable afterwards.
+
+For full request/response schemas, see the [API Reference](/docs/api-reference).

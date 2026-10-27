@@ -1,0 +1,13 @@
+{
+  "extends": "@openpanel/tsconfig/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json",
+    "strictNullChecks": true
+  },
+  "include": [".", "*.mmdb"],
+  "exclude": ["node_modules"]
+}

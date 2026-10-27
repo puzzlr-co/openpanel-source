@@ -1,0 +1,100 @@
+#!/bin/bash
+# Deploy preflight (runbook §1): gates + deployed revision + migration
+# classification + typecheck/tests. Zero placeholders — every value is
+# derived from git or read off prod.
+#
+#   ./sh/preflight                    # full preflight
+#   ./sh/preflight --migrations-ack   # resume after classifying a ⛔ (§4)
+#
+# Exit codes:
+#   0  proceed (verdict + rollback command printed)
+#   1  gate failed (stop and fix; dirty/unpushed tree → stop and ask)
+#   2  ⛔ new code-migration in the release (stop and ask the operator, §4).
+#      typecheck/tests have NOT run at this point — resume with
+#      --migrations-ack so they run instead of being skipped silently.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+VPS="${OP_VPS:-root@91.98.228.238}"
+
+ACK_MIGRATIONS=0
+for arg in "$@"; do
+    case "$arg" in
+        --migrations-ack) ACK_MIGRATIONS=1 ;;
+        *) echo "⛔ unknown argument: $arg" >&2; exit 1 ;;
+    esac
+done
+
+# 1. Gates — the release tag is a claim that image == commit (ADR-0001).
+if [ -n "$(git status --porcelain)" ]; then
+    echo "⛔ working tree dirty — stop and ask; never commit on your own initiative."
+    exit 1
+fi
+git fetch origin main --quiet
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+    echo "⛔ HEAD != origin/main — stop and ask; never push on your own initiative."
+    exit 1
+fi
+HEAD_SHA=$(git rev-parse HEAD)
+RELEASE_TAG="main-$(git rev-parse --short=7 HEAD)"
+
+# 2. Deployed revision — read off prod, never local state/registry/memory.
+PREV=$(ssh "$VPS" "docker inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' self-hosting-op-api-1")
+if [ -z "$PREV" ]; then
+    echo "⛔ prod containers carry no revision label — stop and ask."
+    exit 1
+fi
+
+# 3. Migration classification — decides the rollback policy (§2). Only an ADDED
+#    migration can run: the runner records applied ones by filename
+#    (packages/db/code-migrations/migrate.ts), so editing a migration prod has
+#    already applied — a comment fix, say — is inert and must not gate a deploy.
+MIGRATION_PATHS=(packages/db/prisma/migrations packages/db/code-migrations)
+CHANGED=$(git diff --name-only "$PREV"..HEAD -- "${MIGRATION_PATHS[@]}")
+ADDED=$(git diff --name-only --diff-filter=A "$PREV"..HEAD -- "${MIGRATION_PATHS[@]}")
+if printf '%s\n' "$ADDED" | grep -q '^packages/db/code-migrations/'; then
+    CLASSIFICATION="⛔ code-migrations — read them, summarize to the operator, wait (§4)"
+elif printf '%s\n' "$ADDED" | grep -q '^packages/db/prisma/migrations/'; then
+    CLASSIFICATION="prisma-only — proceed, auto-rollback DISARMED (§2)"
+else
+    CLASSIFICATION="code-only — auto-rollback armed (§2)"
+fi
+
+summary() {
+    echo ""
+    echo "── preflight ──"
+    echo "  release tag:  $RELEASE_TAG  ($HEAD_SHA)"
+    echo "  prod runs:    $PREV"
+    echo "  rollback:     ./sh/docker-release main-${PREV:0:7} && ./sh/ship $PREV"
+    echo "  migrations:   $CLASSIFICATION"
+    while IFS= read -r file; do
+        [ -z "$file" ] && continue
+        if printf '%s\n' "$ADDED" | grep -qxF "$file"; then
+            echo "      new:    $file"
+        else
+            echo "      edited: $file  (already applied — will not re-run)"
+        fi
+    done <<< "$CHANGED"
+    echo "  commits in this release (derive the acceptance check from these, §1):"
+    git log --oneline "$PREV"..HEAD | sed 's/^/      /'
+    if [ -z "$(git log --oneline "$PREV"..HEAD)" ]; then
+        echo "      (none — prod already runs HEAD; ./sh/ship would be a no-op)"
+    fi
+}
+
+# ⛔ before the slow gates: the operator may halt the whole deploy, so don't
+# burn minutes on tests first. --migrations-ack is the way back in once they
+# have classified it, so the gates run on the resume rather than being skipped.
+if [[ "$CLASSIFICATION" == ⛔* ]] && [ "$ACK_MIGRATIONS" -eq 0 ]; then
+    summary
+    echo ""
+    echo "  ⚠️  typecheck + tests NOT RUN — once classified, resume with:"
+    echo "      ./sh/preflight --migrations-ack"
+    exit 2
+fi
+
+# 4. Typecheck + tests (the slow part — cheap gates above fail fast).
+pnpm typecheck
+pnpm test
+
+summary

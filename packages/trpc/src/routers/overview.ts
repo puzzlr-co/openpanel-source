@@ -1,0 +1,849 @@
+import {
+  ch,
+  clix,
+  eventBuffer,
+  excludeTeaserOnlyLive,
+  getChartPrevStartEndDate,
+  getChartStartEndDate,
+  previousToElapsed,
+  getConversionEventNames,
+  getOrganizationSubscriptionChartEndDate,
+  getPromptConversions,
+  getReferrerSpikes,
+  getSettingsForProject,
+  hasPromptConversions,
+  overviewGamesService,
+  overviewService,
+  overviewTeaserService,
+  TABLE_NAMES,
+  validateOverviewShareAccess,
+  zGetMapDataInput,
+  zGetMetricsInput,
+  zGetTopEventsInput,
+  zGetTopGenericInput,
+  zGetTopGenericSeriesInput,
+  zGetTopLinkOutInput,
+  zGetTopPagesInput,
+  zGetUserJourneyInput,
+} from '@openpanel/db';
+import {
+  type IChartRange,
+  pageContextSchema,
+  zChartEventFilter,
+  zRange,
+} from '@openpanel/validation';
+import { format } from 'date-fns';
+import { z } from 'zod';
+import { getProjectAccess } from '../access';
+import { runFilterCommand } from '../agents/filter-command';
+import { TRPCAccessError, TRPCForbiddenError } from '../errors';
+import { REALTIME_RANGES, getCachedPreviousPeriod } from './overview.cache';
+import {
+  cacheMiddleware,
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from '../trpc';
+
+const cacher = cacheMiddleware((input, opts) => {
+  const range = input.range as IChartRange;
+  if (opts.path === 'overview.liveData') {
+    return 0;
+  }
+
+  switch (range) {
+    // Realtime ranges: keep near-live so new events surface within ~1s.
+    case '30min':
+    case 'today':
+    case 'lastHour':
+    case 'last24h':
+      return 1;
+    // Non-realtime ranges (7d/30d/90d/6m/12m/…): the underlying aggregations
+    // barely move minute-to-minute, so cache for 60s (matching chart.ts
+    // precedent) to serve re-mounts/re-navigations from Redis instead of
+    // re-running the heavy ClickHouse query set on every load.
+    default:
+      return 60;
+  }
+});
+
+const overviewProcedure = publicProcedure.use(
+  async ({ ctx, next, getRawInput }) => {
+    const rawInput = (await getRawInput()) as {
+      projectId: string;
+      shareId?: string;
+    };
+
+    if (rawInput.shareId) {
+      // A password share without the unlock cookie resolves to
+      // `isValid: false` rather than throwing (as upstream's resolveOverviewAccess).
+      const { isValid } = await validateOverviewShareAccess(
+        rawInput.shareId,
+        rawInput.projectId,
+        {
+          cookies: ctx.cookies,
+          session: ctx.session?.userId
+            ? { userId: ctx.session.userId }
+            : undefined,
+        }
+      );
+      if (!isValid) {
+        throw new TRPCForbiddenError('You do not have access to this share');
+      }
+    } else {
+      if (!ctx.session?.userId) {
+        throw new TRPCAccessError('Authentication required');
+      }
+      const access = await getProjectAccess({
+        projectId: rawInput.projectId,
+        userId: ctx.session.userId,
+      });
+      if (!access) {
+        throw new TRPCForbiddenError('You do not have access to this project');
+      }
+    }
+
+    return next();
+  }
+);
+
+function getCurrentAndPrevious<
+  T extends {
+    startDate?: string | null;
+    endDate?: string | null;
+    range: IChartRange;
+    projectId: string;
+  },
+>(input: T, fetchPrevious: boolean, timezone: string) {
+  const current = getChartStartEndDate(input, timezone);
+  const previous = previousToElapsed(
+    current,
+    getChartPrevStartEndDate(current),
+    timezone,
+    !REALTIME_RANGES.has(input.range),
+  );
+
+  return async <R>(
+    fn: (input: T & { startDate: string; endDate: string }) => Promise<R>,
+    options?: { previousCacheKey?: string }
+  ): Promise<{
+    current: R;
+    previous: R | null;
+  }> => {
+    const endDate = await getOrganizationSubscriptionChartEndDate(
+      input.projectId,
+      current.endDate
+    );
+    if (endDate) {
+      current.endDate = endDate;
+      // Only expired trial scenarios
+      if (new Date(current.startDate) > new Date(current.endDate)) {
+        current.startDate = current.endDate;
+      }
+    }
+    // The previous comparison window is a CLOSED period entirely in the past —
+    // the subscription clamp above only ever touches `current`, so these bounds
+    // are immutable for a given hour (previousToElapsed). For non-realtime ranges, serve it from a
+    // long-lived cache keyed on the resolved previous bounds (so a rolling
+    // window invalidates when the boundary advances) instead of re-scanning
+    // events/sessions on every cold load.
+    const previousInput = {
+      ...input,
+      startDate: previous.startDate,
+      endDate: previous.endDate,
+    };
+    const previousPromise: Promise<R | null> = !fetchPrevious
+      ? Promise.resolve(null)
+      : options?.previousCacheKey && !REALTIME_RANGES.has(input.range)
+        ? getCachedPreviousPeriod(options.previousCacheKey, previousInput, () =>
+            fn(previousInput)
+          )
+        : fn(previousInput);
+
+    const res = await Promise.all([
+      fn({
+        ...input,
+        startDate: current.startDate,
+        endDate: current.endDate,
+      }),
+      previousPromise,
+    ]);
+
+    return {
+      current: res[0],
+      previous: res[1],
+    };
+  };
+}
+
+export const overviewRouter = createTRPCRouter({
+  liveVisitors: overviewProcedure
+    .input(z.object({ projectId: z.string(), shareId: z.string().optional() }))
+    .query(async ({ input }) => {
+      return eventBuffer.getActiveVisitorCount(input.projectId);
+    }),
+
+  liveData: overviewProcedure
+    .input(z.object({ projectId: z.string(), shareId: z.string().optional() }))
+    .use(cacher)
+    .query(async ({ input }) => {
+      const [{ timezone }, keepPlayers] = await Promise.all([
+        getSettingsForProject(input.projectId),
+        excludeTeaserOnlyLive(input.projectId),
+      ]);
+
+      // Get total unique sessions in the last 30 minutes
+      const totalSessionsQuery = clix(ch, timezone)
+        .select<{ total_sessions: number }>([
+          'uniq(session_id) as total_sessions',
+        ])
+        .from(TABLE_NAMES.events)
+        .where('project_id', '=', input.projectId)
+        .where('created_at', '>=', clix.exp('now() - INTERVAL 30 MINUTE'))
+        .rawWhere(keepPlayers);
+
+      // Get counts per minute for the last 30 minutes
+      const minuteCountsQuery = clix(ch, timezone)
+        .select<{
+          minute: string;
+          session_count: number;
+          visitor_count: number;
+        }>([
+          `${clix.toStartOf('created_at', 'minute')} as minute`,
+          'uniq(session_id) as session_count',
+          'uniq(profile_id) as visitor_count',
+        ])
+        .from(TABLE_NAMES.events)
+        .where('project_id', '=', input.projectId)
+        .where('created_at', '>=', clix.exp('now() - INTERVAL 30 MINUTE'))
+        .rawWhere(keepPlayers)
+        .groupBy(['minute'])
+        .orderBy('minute', 'ASC')
+        .fill(
+          clix.exp('toStartOfMinute(now() - INTERVAL 30 MINUTE)'),
+          clix.exp('toStartOfMinute(now())'),
+          clix.exp('INTERVAL 1 MINUTE')
+        );
+
+      // Get referrers per minute for the last 30 minutes
+      const minuteReferrersQuery = clix(ch, timezone)
+        .select<{
+          minute: string;
+          referrer_name: string;
+          count: number;
+        }>([
+          `${clix.toStartOf('created_at', 'minute')} as minute`,
+          'referrer_name',
+          'uniq(session_id) as count',
+        ])
+        .from(TABLE_NAMES.events)
+        .where('project_id', '=', input.projectId)
+        .where('created_at', '>=', clix.exp('now() - INTERVAL 30 MINUTE'))
+        .rawWhere(keepPlayers)
+        .where('referrer_name', '!=', '')
+        .where('referrer_name', 'IS NOT NULL')
+        .groupBy(['minute', 'referrer_name'])
+        .orderBy('minute', 'ASC')
+        .orderBy('count', 'DESC');
+
+      // Get unique referrers in the last 30 minutes
+      const referrersQuery = clix(ch, timezone)
+        .select<{ referrer: string; count: number }>([
+          'referrer_name as referrer',
+          'uniq(session_id) as count',
+        ])
+        .from(TABLE_NAMES.events)
+        .where('project_id', '=', input.projectId)
+        .where('created_at', '>=', clix.exp('now() - INTERVAL 30 MINUTE'))
+        .rawWhere(keepPlayers)
+        .where('referrer_name', '!=', '')
+        .where('referrer_name', 'IS NOT NULL')
+        .groupBy(['referrer_name'])
+        .orderBy('count', 'DESC')
+        .limit(10);
+
+      const [totalSessions, minuteCounts, minuteReferrers, referrers] =
+        await Promise.all([
+          totalSessionsQuery.execute(),
+          minuteCountsQuery.execute(),
+          minuteReferrersQuery.execute(),
+          referrersQuery.execute(),
+        ]);
+
+      // Group referrers by minute
+      const referrersByMinute = new Map<
+        string,
+        Array<{ referrer: string; count: number }>
+      >();
+      minuteReferrers.forEach((item) => {
+        if (!referrersByMinute.has(item.minute)) {
+          referrersByMinute.set(item.minute, []);
+        }
+        referrersByMinute.get(item.minute)!.push({
+          referrer: item.referrer_name,
+          count: item.count,
+        });
+      });
+
+      return {
+        totalSessions: totalSessions[0]?.total_sessions || 0,
+        minuteCounts: minuteCounts.map((item) => ({
+          minute: item.minute,
+          sessionCount: item.session_count,
+          visitorCount: item.visitor_count,
+          timestamp: new Date(item.minute).getTime(),
+          time: new Date(item.minute).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          referrers: referrersByMinute.get(item.minute) || [],
+        })),
+        referrers: referrers.map((item) => ({
+          referrer: item.referrer,
+          count: item.count,
+        })),
+      };
+    }),
+  stats: overviewProcedure
+    .input(
+      zGetMetricsInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      // avg_dau, returning_rate and level_completion are computed together in a
+      // single events scan by getEventMetrics (was three separate metrics); the
+      // session metrics and the session-grain multi_game share remain their own
+      // scans. This cuts overview.stats from five metric fetches to three.
+      const [
+        { current, previous },
+        { current: eventsCurrent, previous: eventsPrevious },
+        { current: multiGameCurrent, previous: multiGamePrevious },
+      ] = await Promise.all([
+        getCurrentAndPrevious(
+          { ...input, timezone },
+          true,
+          timezone,
+        )(overviewService.getMetrics.bind(overviewService), {
+          previousCacheKey: 'metrics',
+        }),
+        getCurrentAndPrevious(
+          { ...input, timezone },
+          true,
+          timezone,
+        )(overviewService.getEventMetrics.bind(overviewService), {
+          previousCacheKey: 'eventMetrics',
+        }),
+        getCurrentAndPrevious(
+          { ...input, timezone },
+          true,
+          timezone,
+        )(overviewService.getMultiGameSessions.bind(overviewService), {
+          previousCacheKey: 'multiGameSessions',
+        }),
+      ]);
+      return {
+        metrics: {
+          ...current.metrics,
+          avg_dau: eventsCurrent.metrics.avg_dau,
+          multi_game_sessions: multiGameCurrent.metrics.multi_game_sessions,
+          returning_rate: eventsCurrent.metrics.returning_rate,
+          level_completion: eventsCurrent.metrics.level_completion,
+          prev_bounce_rate: previous?.metrics.bounce_rate || null,
+          prev_unique_visitors: previous?.metrics.unique_visitors || null,
+          prev_total_screen_views: previous?.metrics.total_screen_views || null,
+          prev_avg_session_duration:
+            previous?.metrics.avg_session_duration || null,
+          prev_views_per_session: previous?.metrics.views_per_session || null,
+          prev_total_sessions: previous?.metrics.total_sessions || null,
+          prev_total_revenue: previous?.metrics.total_revenue || null,
+          prev_avg_dau: eventsPrevious?.metrics.avg_dau || null,
+          prev_multi_game_sessions:
+            multiGamePrevious?.metrics.multi_game_sessions || null,
+          prev_returning_rate: eventsPrevious?.metrics.returning_rate || null,
+          prev_level_completion:
+            eventsPrevious?.metrics.level_completion || null,
+        },
+        series: current.series.map((item, index) => {
+          const prev = previous?.series[index];
+          const eventsCurrentItem = eventsCurrent.series[index];
+          const eventsPrevItem = eventsPrevious?.series[index];
+          const multiGameCurrentItem = multiGameCurrent.series[index];
+          const multiGamePrevItem = multiGamePrevious?.series[index];
+          return {
+            ...item,
+            date: format(item.date, 'yyyy-MM-dd HH:mm:ss'),
+            avg_dau: eventsCurrentItem?.avg_dau ?? 0,
+            multi_game_sessions:
+              multiGameCurrentItem?.multi_game_sessions ?? 0,
+            returning_rate: eventsCurrentItem?.returning_rate ?? 0,
+            level_completion: eventsCurrentItem?.level_completion ?? 0,
+            prev_bounce_rate: prev?.bounce_rate,
+            prev_unique_visitors: prev?.unique_visitors,
+            prev_total_screen_views: prev?.total_screen_views,
+            prev_avg_session_duration: prev?.avg_session_duration,
+            prev_views_per_session: prev?.views_per_session,
+            prev_total_sessions: prev?.total_sessions,
+            prev_total_revenue: prev?.total_revenue,
+            prev_avg_dau: eventsPrevItem?.avg_dau,
+            prev_multi_game_sessions: multiGamePrevItem?.multi_game_sessions,
+            prev_returning_rate: eventsPrevItem?.returning_rate,
+            prev_level_completion: eventsPrevItem?.level_completion,
+          };
+        }),
+      };
+    }),
+
+  // Tenure composition over time (the "tenure river"), derived from
+  // days_since_first_visit. Powers the retention section's stock signal.
+  tenureSeries: overviewProcedure
+    .input(
+      zGetMetricsInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      }),
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { startDate, endDate } = getChartStartEndDate(input, timezone);
+      return overviewService.getTenureSeries({
+        projectId: input.projectId,
+        filters: input.filters,
+        interval: input.interval,
+        startDate,
+        endDate,
+        timezone,
+      });
+    }),
+
+  // Cohort activity retention from days_since_first_visit. Returns flat
+  // (cohort_week, life_week, sessions) rows; the client pivots into curves.
+  // Powers the retention section's flow signal.
+  cohortRetention: overviewProcedure
+    .input(
+      zGetMetricsInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      }),
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { startDate, endDate } = getChartStartEndDate(input, timezone);
+      return overviewService.getCohortRetention({
+        projectId: input.projectId,
+        filters: input.filters,
+        interval: input.interval,
+        startDate,
+        endDate,
+        timezone,
+      });
+    }),
+
+  getReferrerSpikes: overviewProcedure
+    .input(
+      zGetMetricsInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { startDate, endDate } = getChartStartEndDate(input, timezone);
+      const clusters = await getReferrerSpikes({
+        projectId: input.projectId,
+        filters: input.filters,
+        interval: input.interval,
+        startDate,
+        endDate,
+        timezone,
+      });
+      // Reformat every spike date (and the cluster's anchor) to match
+      // overview.stats' series date format, so markers x-align with the
+      // chart's data points (xScale matches by Date identity).
+      const fmt = (iso: string) => format(new Date(iso), 'yyyy-MM-dd HH:mm:ss');
+      return clusters.map((cluster) => ({
+        anchorDate: fmt(cluster.anchorDate),
+        spikes: cluster.spikes.map((spike) => ({
+          ...spike,
+          date: fmt(spike.date),
+        })),
+      }));
+    }),
+
+  topPages: overviewProcedure
+    .input(
+      zGetTopPagesInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        mode: z.enum(['page', 'entry', 'exit', 'bot']),
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input },
+        false,
+        timezone
+      )(async (input) => {
+        if (input.mode === 'page') {
+          return overviewService.getTopPages({ ...input, timezone });
+        }
+
+        if (input.mode === 'bot') {
+          return Promise.resolve([]);
+        }
+
+        return overviewService.getTopEntryExit({
+          ...input,
+          mode: input.mode,
+          timezone,
+        });
+      });
+
+      return current;
+    }),
+
+  topGeneric: overviewProcedure
+    .input(
+      zGetTopGenericInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewService.getTopGeneric.bind(overviewService));
+
+      return current;
+    }),
+
+  topGenericSeries: overviewProcedure
+    .input(
+      zGetTopGenericSeriesInput
+        .omit({ startDate: true, endDate: true })
+        .extend({
+          startDate: z.string().nullish(),
+          endDate: z.string().nullish(),
+          range: zRange,
+          shareId: z.string().optional(),
+        })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewService.getTopGenericSeries.bind(overviewService));
+
+      return current;
+    }),
+
+  userJourney: overviewProcedure
+    .input(
+      zGetUserJourneyInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        steps: z.number().min(2).max(10).default(5).optional(),
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(async (input) => {
+        return overviewService.getUserJourney({
+          ...input,
+          steps: input.steps ?? 5,
+          timezone,
+        });
+      });
+
+      return current;
+    }),
+
+  topEvents: overviewProcedure
+    .input(
+      zGetTopEventsInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewService.getTopEvents.bind(overviewService));
+
+      return current;
+    }),
+
+  topConversions: overviewProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        shareId: z.string().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      return getConversionEventNames(input.projectId);
+    }),
+
+  topLinkOut: overviewProcedure
+    .input(
+      zGetTopLinkOutInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewService.getTopLinkOut.bind(overviewService));
+
+      return current;
+    }),
+
+  // Fork-only: Top games widget (level started / completed per game_id).
+  // Reuses zGetTopLinkOutInput since the service signature is identical.
+  topGames: overviewProcedure
+    .input(
+      zGetTopLinkOutInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      }),
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone,
+      )(overviewService.getTopGames.bind(overviewService));
+
+      return current;
+    }),
+
+  // Fork-only: drill-down Events widget — distinct property keys for an event.
+  topEventPropertyKeys: overviewProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        shareId: z.string().optional(),
+        eventName: z.string(),
+        filters: z.array(z.any()).default([]),
+        range: zRange,
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+      }),
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone,
+      )(overviewService.getEventPropertyKeys.bind(overviewService));
+
+      return current;
+    }),
+
+  // Fork-only: drill-down Events widget — value distribution for event+property.
+  topEventPropertyValues: overviewProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        shareId: z.string().optional(),
+        eventName: z.string(),
+        propertyKey: z.string(),
+        filters: z.array(z.any()).default([]),
+        range: zRange,
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+      }),
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone,
+      )(overviewService.getEventPropertyValues.bind(overviewService));
+
+      return current;
+    }),
+
+  // One-shot AI command bar — converts natural-language requests
+  // ("show 7 aug to 11 aug", "from google", "mobile only for august
+  // last year") into structured filter changes the dashboard can apply
+  // through the same handlers the chat panel uses.
+  runFilterCommand: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        query: z.string().min(1).max(500),
+        pageContext: pageContextSchema.optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      return runFilterCommand({
+        query: input.query,
+        projectId: input.projectId,
+        pageContext: input.pageContext,
+        timezone: timezone || 'UTC',
+      });
+    }),
+
+  map: overviewProcedure
+    .input(
+      zGetMapDataInput.omit({ startDate: true, endDate: true }).extend({
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        range: zRange,
+        shareId: z.string().optional(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewService.getMapData.bind(overviewService));
+
+      return current;
+    }),
+
+  // Fork-only: per-game breakdown for the overview Games widget. Appended at the
+  // end of the router and backed by its own service file, so the fork's surface
+  // against upstream stays at one import plus this block.
+  gameBreakdown: overviewProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        shareId: z.string().optional(),
+        filters: z.array(z.any()).default([]),
+        range: zRange,
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewGamesService.getGameBreakdown.bind(overviewGamesService));
+
+      return current;
+    }),
+
+  // Fork-only: Teaser funnel (viewed → started → solved → tapped → reached hub),
+  // by game or by article, behind the overview Teaser widget. Null for a project
+  // that never sent a Teaser view, so the widget renders nothing.
+  teaserFunnel: overviewProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        shareId: z.string().optional(),
+        filters: z.array(z.any()).default([]),
+        range: zRange,
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+        by: z.enum(['game', 'article']).default('game'),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      if (!(await overviewTeaserService.firstTeaserAt(input.projectId))) {
+        return null;
+      }
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(overviewTeaserService.getTeaserFunnel.bind(overviewTeaserService));
+
+      return current;
+    }),
+
+  // Fork-only: upgrade prompt openings, clicks and attributed sign-ins or
+  // entitlement changes, behind the overview Prompt conversions widget. Null
+  // for a project that never sent a prompt, so the widget renders nothing.
+  promptConversions: overviewProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        shareId: z.string().optional(),
+        filters: z.array(zChartEventFilter).default([]),
+        range: zRange,
+        startDate: z.string().nullish(),
+        endDate: z.string().nullish(),
+      })
+    )
+    .use(cacher)
+    .query(async ({ input }) => {
+      if (!(await hasPromptConversions(input.projectId))) {
+        return null;
+      }
+      const { timezone } = await getSettingsForProject(input.projectId);
+      const { current } = await getCurrentAndPrevious(
+        { ...input, timezone },
+        false,
+        timezone
+      )(getPromptConversions);
+
+      return current;
+    }),
+});

@@ -1,0 +1,103 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              ":BUN:",
+              ":NODE:",
+              [
+                "npm:*",
+                "npm:*/**"
+              ],
+              ":PACKAGE_WITH_PROTOCOL:",
+              ":URL:",
+              ":PACKAGE:",
+              [
+                "/**"
+              ],
+              [
+                "#*",
+                "#*/**"
+              ],
+              ":PATH:"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "useAltText": "off",
+        "noLabelWithoutControl": "off",
+        "useFocusableInteractive": "off",
+        "useSemanticElements": "off"
+      },
+      "style": {
+        "noNestedTernary": "off",
+        "noNonNullAssertion": "off",
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error",
+        "useDefaultSwitchClause": "off",
+        "noParameterProperties": "off",
+        "useConsistentMemberAccessibility": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off",
+        "noUnreachable": "off",
+        "noGlobalDirnameFilename": "off"
+      },
+      "performance": {
+        "noDelete": "off",
+        "noAccumulatingSpread": "off",
+        "noBarrelFile": "off",
+        "noNamespaceImport": "off",
+        "useTopLevelRegex": "off",
+        "noImgElement": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noShadowRestrictedNames": "off",
+        "useAwait": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "complexity": {
+        "noForEach": "off",
+        "noExcessiveCognitiveComplexity": "off"
+      }
+    }
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next",
+    "ultracite/biome/remix"
+  ]
+}

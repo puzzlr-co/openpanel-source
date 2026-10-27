@@ -1,0 +1,45 @@
+<clickhouse>
+    <logger>
+        <level>warning</level>
+        <console>true</console>
+    </logger>
+    
+    <keep_alive_timeout>10</keep_alive_timeout>
+
+    <!-- Cap ClickHouse's total memory below host RAM so it self-limits
+         (MEMORY_LIMIT_EXCEEDED) before the kernel OOM killer kills it.
+         Default ratio is 0.9, which on a shared host leaves no headroom. -->
+    <max_server_memory_usage_to_ram_ratio>0.7</max_server_memory_usage_to_ram_ratio>
+
+    <!-- Stop all the unnecessary logging -->
+    <query_thread_log remove="remove"/>
+    <text_log remove="remove"/>
+    <trace_log remove="remove"/>
+    <metric_log remove="remove"/>
+    <asynchronous_metric_log remove="remove"/>
+    <session_log remove="remove"/>
+    <part_log remove="remove"/>
+
+    <!-- Kept, unlike its neighbours above, as the audit trail for the read-only
+         analytics users: their profile sets log_queries=1 while the app's own
+         profile leaves it at 0, so this table records human and agent SQL and
+         none of the ingestion traffic. Their quota caps each account at 500
+         queries/hour, so the write cost is negligible. -->
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <ttl>event_date + INTERVAL 30 DAY DELETE</ttl>
+    </query_log>
+
+    <listen_host>0.0.0.0</listen_host>
+    <interserver_listen_host>0.0.0.0</interserver_listen_host>
+    <interserver_http_host>op-ch</interserver_http_host>
+
+    <!-- Not used anymore, but kept for backwards compatibility -->
+    <macros>
+        <shard>1</shard>
+        <replica>replica1</replica>
+        <cluster>openpanel_cluster</cluster>
+    </macros>
+</clickhouse>

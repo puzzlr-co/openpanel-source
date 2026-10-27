@@ -1,0 +1,101 @@
+<clickhouse>
+    <!-- Read-only ClickHouse access for the internal puzzlr team and its agents.
+         Copy to readonly-users.xml (gitignored, host-local like .env), then use
+         ./add-analytics-user <name>. The config watcher picks up adds and revokes
+         within seconds — no restart, no ingestion pause.
+
+         The copy must be readable by uid 101:
+
+           chown 101:101 readonly-users.xml && chmod 640 readonly-users.xml
+
+         An unreadable users.d file is CANNOT_LOAD_CONFIG at *startup*, so a
+         root-only mode stays silent until the next restart, then crash-loops.
+         `docker exec` reports root — the exec user, not the daemon's.
+    -->
+    <profiles>
+        <analytics_ro>
+            <!-- A session can tighten these but not relax either (25.10.2, codes
+                 164 / 392). The grants below are the real fence; these back it. -->
+            <readonly>2</readonly>
+            <allow_ddl>0</allow_ddl>
+
+            <!-- Ad-hoc queries share 8 cores and a 10.65 GB server ceiling with
+                 live ingestion. The app runs the stock `default` profile, which
+                 budgets nothing, so what this profile leaves is its headroom.
+                 Per-account bounds concurrent queries that per-query cannot: the
+                 total is (analytics users x 2 GB) — re-check it at the fifth. -->
+            <max_memory_usage>2000000000</max_memory_usage>
+            <max_memory_usage_for_user>2000000000</max_memory_usage_for_user>
+            <max_bytes_before_external_group_by>1000000000</max_bytes_before_external_group_by>
+            <max_bytes_before_external_sort>1000000000</max_bytes_before_external_sort>
+            <max_threads>4</max_threads>
+            <max_concurrent_queries_for_user>4</max_concurrent_queries_for_user>
+            <max_execution_time>60</max_execution_time>
+
+            <!-- A runaway guard, not a budget: a full scan of events is ~135M
+                 rows and legitimate; an accidental cross join is not. -->
+            <max_rows_to_read>2000000000</max_rows_to_read>
+            <max_result_rows>100000</max_result_rows>
+
+            <!-- The app's profile leaves this at 0, so enabling it here is what
+                 scopes query_log to these accounts rather than to ingestion. -->
+            <log_queries>1</log_queries>
+
+            <!-- Ceilings for anything raised per-query under readonly=2. Each
+                 needs a <min> too, since 0 means unlimited and an upper bound
+                 alone accepts it: with <max> only, max_execution_time=0 ran a
+                 query 11s past a 2s limit. log_queries is <const/> because 0
+                 would erase the caller from the audit trail. -->
+            <constraints>
+                <max_execution_time><min>1</min><max>300</max></max_execution_time>
+                <max_memory_usage><min>100000000</min><max>2000000000</max></max_memory_usage>
+                <max_memory_usage_for_user><min>100000000</min><max>2000000000</max></max_memory_usage_for_user>
+                <max_rows_to_read><min>1000</min><max>2000000000</max></max_rows_to_read>
+                <max_result_rows><min>1</min><max>1000000</max></max_result_rows>
+                <max_concurrent_queries_for_user><min>1</min><max>4</max></max_concurrent_queries_for_user>
+                <max_threads><min>1</min><max>4</max></max_threads>
+                <log_queries><const/></log_queries>
+            </constraints>
+        </analytics_ro>
+    </profiles>
+
+    <quotas>
+        <analytics_ro>
+            <!-- Counted per quota_key: the qop proxy sets it to the caller's GitHub
+                 login, so one shared service user still meters each person. -->
+            <keyed />
+            <interval>
+                <duration>3600</duration>
+                <queries>500</queries>
+                <errors>100</errors>
+                <result_rows>10000000</result_rows>
+                <read_rows>50000000000</read_rows>
+                <execution_time>1800</execution_time>
+            </interval>
+        </analytics_ro>
+    </quotas>
+
+    <users>
+        <!-- One block per service. The qop proxy's user (qop_proxy) reaches
+             ClickHouse through the Cloudflare Tunnel (op-tunnel) and tags each
+             query with quota_key and log_comment qop:<login>. -->
+        <agent_example>
+            <password_sha256_hex>REPLACE_WITH_SHA256_HEX</password_sha256_hex>
+            <profile>analytics_ro</profile>
+            <quota>analytics_ro</quota>
+            <!-- Requests arrive from op-tunnel's Docker network address, not the
+                 caller's, so the password is the access control. -->
+            <networks><ip>::/0</ip></networks>
+            <grants>
+                <query>GRANT SELECT ON openpanel.*</query>
+                <!-- DESCRIBE, SHOW CREATE, system.columns: schema discovery
+                     without a written copy that can go stale. -->
+                <query>GRANT SELECT ON system.*</query>
+                <!-- Precise coordinates answer no question the brain asks; country and city stay. -->
+                <query>REVOKE SELECT(latitude, longitude) ON openpanel.events</query>
+                <query>REVOKE SELECT(latitude, longitude) ON openpanel.sessions</query>
+                <query>REVOKE SELECT(latitude, longitude) ON openpanel.events_imports</query>
+            </grants>
+        </agent_example>
+    </users>
+</clickhouse>

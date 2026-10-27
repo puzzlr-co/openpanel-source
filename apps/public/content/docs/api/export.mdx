@@ -1,0 +1,25 @@
+---
+title: Export
+description: Retrieve raw events and aggregated chart data from your projects.
+---
+
+## Authentication
+
+Requires a `read` or `root` client — the default `write` client does not have access. See the [Authentication](/docs/api/authentication) guide.
+
+## Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /export/events` | Paginated list of raw events with optional filtering |
+| `GET /export/charts` | Aggregated time-series data with breakdowns |
+
+### Filtering events
+
+The `/export/events` endpoint accepts filters, pagination, and an `includes` parameter to attach related data (profile, meta, properties, geo, device, referrer).
+
+### Chart series
+
+The `/export/charts` endpoint accepts a `series` array where each item can specify an event name, filters, and a segment type (`event`, `user`, `session`, `property_sum`, etc.).
+
+For full query parameter and response schemas, see the [API Reference](/docs/api-reference).

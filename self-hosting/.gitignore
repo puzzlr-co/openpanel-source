@@ -1,0 +1,6 @@
+.env
+docker-compose.yml
+caddy/Caddyfile
+clickhouse/readonly-users.xml
+clickhouse/secure-default-user.xml
+clickhouse/client-auth.xml

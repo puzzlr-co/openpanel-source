@@ -1,0 +1,66 @@
+{
+  "name": "@openpanel/root",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "Carl-Gerhard Lindesvärd",
+  "packageManager": "pnpm@10.6.2",
+  "scripts": {
+    "test": "vitest run",
+    "gen:bots": "pnpm -r --filter api gen:bots",
+    "gen:referrers": "pnpm -r --filter common gen:referrers",
+    "dock:up": "docker compose up -d",
+    "dock:down": "docker compose down",
+    "dock:ch": "docker compose exec -it op-ch clickhouse-client -d openpanel",
+    "dock:redis": "docker compose exec -it op-kv redis-cli",
+    "db:codegen": "pnpm -r --filter db run codegen",
+    "codegen": "pnpm -r --filter db --filter geo run codegen",
+    "migrate": "pnpm -r --filter db run migrate",
+    "migrate:deploy": "pnpm -r --filter db run migrate:deploy",
+    "dev": "pnpm -r --parallel testing",
+    "dev:public": "pnpm -r --filter public dev",
+    "typecheck": "pnpm -r --no-bail typecheck",
+    "update-simple-git-hooks": "npx simple-git-hooks",
+    "check:workspace": "pnpm dlx sherif@latest",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
+  },
+  "simple-git-hooks": {
+    "pre-push": "[ -n \"$SKIP_HOOKS\" ] || (pnpm typecheck && pnpm test)"
+  },
+  "dependencies": {
+    "@hyperdx/node-opentelemetry": "catalog:",
+    "dotenv-cli": "^7.3.0",
+    "semver": "^7.5.4",
+    "typescript": "catalog:"
+  },
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "@prisma/client",
+    "@prisma/engines",
+    "bcrypt",
+    "esbuild",
+    "lodepng",
+    "msgpackr-extract",
+    "prisma",
+    "protobufjs",
+    "sharp"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "2.3.15",
+    "depcheck": "^1.4.7",
+    "simple-git-hooks": "^2.12.1",
+    "ultracite": "7.2.0",
+    "vitest": "^3.0.4"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "nuqs": "patches/nuqs.patch"
+    },
+    "overrides": {
+      "rolldown": "1.0.0-beta.43",
+      "esm-env": "npm:esm-env-runtime@^0.1.0"
+    }
+  }
+}

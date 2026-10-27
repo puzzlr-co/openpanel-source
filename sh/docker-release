@@ -1,0 +1,48 @@
+#!/bin/bash
+# Re-point the :2 channel tag at an existing release tag (ADR-0002).
+#
+# Prod tracks :2; this script is the ONLY thing that moves it. A normal
+# deploy releases the tag just built; a rollback releases the previous one.
+# The operation is manifest-only (instant, multi-arch preserved) — prod is
+# unaffected until ./update runs on the VPS.
+#
+# Usage: ./sh/docker-release                       # forward: the build of HEAD
+#        ./sh/docker-release main-<prev-sha>       # rollback: a previous build
+set -euo pipefail
+
+RELEASE_TAG="${1:-}"
+APPS=(dashboard worker api)
+
+if [ -z "$RELEASE_TAG" ]; then
+    # No arg: release the build of HEAD. Same gates as the build — the
+    # channel may only move to a tag that matches the pushed main.
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Error: working tree dirty — clean up, or pass an explicit release tag."
+        exit 1
+    fi
+    git fetch origin main --quiet
+    if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+        echo "Error: HEAD != origin/main — push/pull first, or pass an explicit release tag."
+        exit 1
+    fi
+    RELEASE_TAG="main-$(git rev-parse --short=7 HEAD)"
+    echo "Releasing the build of HEAD: $RELEASE_TAG"
+fi
+
+# Validate all three images first so the channel never moves partially.
+for app in "${APPS[@]}"; do
+    image="keiwanmosaddegh/openpanel-$app"
+    if ! docker buildx imagetools inspect "$image:$RELEASE_TAG" >/dev/null 2>&1; then
+        echo "Error: $image:$RELEASE_TAG not found on Docker Hub — build it first."
+        exit 1
+    fi
+done
+
+for app in "${APPS[@]}"; do
+    image="keiwanmosaddegh/openpanel-$app"
+    docker buildx imagetools create -t "$image:2" "$image:$RELEASE_TAG"
+    echo "✔ $image:2 → $RELEASE_TAG"
+done
+
+echo ""
+echo "Channel tag :2 now points at $RELEASE_TAG. Run ./update on the VPS to apply."

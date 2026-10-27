@@ -1,0 +1,728 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+// generator json {
+//   provider = "prisma-json-types-generator"
+// }
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
+}
+
+model CodeMigration {
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("__code_migrations")
+}
+
+enum ProjectType {
+  website
+  app
+  backend
+}
+
+model Conversation {
+  id             String        @id @default(dbgenerated("gen_random_uuid()"))
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  messages       ChatMessage[]
+
+  @@index([projectId, updatedAt])
+  @@index([userId, updatedAt])
+  @@map("conversations")
+}
+
+model ChatMessage {
+  id             String       @id @default(dbgenerated("gen_random_uuid()"))
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  /// [IPrismaUIMessageParts]
+  parts          Json
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+model Organization {
+  id              String           @id @default(dbgenerated("gen_random_uuid()"))
+  name            String
+  projects        Project[]
+  members         Member[]
+  createdByUserId String?
+  createdBy       User?            @relation(name: "organizationCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  ProjectAccess   ProjectAccess[]
+  Client          Client[]
+  Dashboard       Dashboard[]
+  ShareOverview   ShareOverview[]
+  ShareDashboard  ShareDashboard[]
+  ShareReport     ShareReport[]
+  ShareWidget     ShareWidget[]
+  integrations    Integration[]
+  invites         Invite[]
+  conversations   Conversation[]
+  timezone        String?
+  onboarding      String?          @default("completed")
+  secret          String?
+
+  // Subscription
+  subscriptionId                          String?
+  subscriptionCustomerId                  String?
+  subscriptionPriceId                     String?
+  subscriptionProductId                   String?
+  /// [IPrismaSubscriptionStatus]
+  subscriptionStatus                      String?
+  subscriptionStartsAt                    DateTime?
+  subscriptionEndsAt                      DateTime?
+  subscriptionCanceledAt                  DateTime?
+  subscriptionCreatedByUserId             String?
+  subscriptionCreatedBy                   User?     @relation(name: "subscriptionCreatedBy", fields: [subscriptionCreatedByUserId], references: [id])
+  subscriptionPeriodEventsCount           Int       @default(0)
+  subscriptionPeriodEventsCountExceededAt DateTime?
+  subscriptionPeriodEventsLimit           Int       @default(0)
+  subscriptionInterval                    String?
+
+  // When deleteAt > now(), the organization will be deleted
+  deleteAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("organizations")
+}
+
+model User {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()"))
+  email                String               @unique
+  firstName            String?
+  lastName             String?
+  createdOrganizations Organization[]       @relation("organizationCreatedBy")
+  subscriptions        Organization[]       @relation("subscriptionCreatedBy")
+  membership           Member[]
+  sentInvites          Member[]             @relation("invitedBy")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @default(now()) @updatedAt
+  deletedAt            DateTime?
+  ProjectAccess        ProjectAccess[]
+  sessions             Session[]
+  accounts             Account[]
+  invites              Invite[]
+  conversations        Conversation[]
+  totp                 UserTotp?
+  twoFactorChallenges  TwoFactorChallenge[]
+
+  @@map("users")
+}
+
+model UserTotp {
+  id            String    @id @default(dbgenerated("gen_random_uuid()"))
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret        String
+  recoveryCodes String[]
+  enabledAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  @@map("user_totp")
+}
+
+model TwoFactorChallenge {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("two_factor_challenges")
+}
+
+model Account {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()"))
+  userId                String
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email                 String?
+  provider              String
+  providerId            String?
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @default(now()) @updatedAt
+  resetPasswords        ResetPassword[]
+
+  @@map("accounts")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Member {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role           String
+  email          String
+  // userId is nullable because we want to allow invites to be sent to emails that are not registered
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedById    String?
+  invitedBy      User?        @relation("invitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  meta           Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@unique([organizationId, userId])
+  @@map("members")
+}
+
+model Invite {
+  id             String       @id
+  email          String
+  createdBy      User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById    String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectAccess  String[]
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+  role           String
+
+  @@map("invites")
+}
+
+model Project {
+  id                         String        @id @default(dbgenerated("gen_random_uuid()"))
+  name                       String
+  organization               Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId             String
+  eventsCount                Int           @default(0)
+  types                      ProjectType[] @default([])
+  domain                     String?
+  cors                       String[]      @default([])
+  crossDomain                Boolean       @default(false)
+  allowUnsafeRevenueTracking Boolean       @default(false)
+  /// [IPrismaProjectFilters]
+  filters                    Json          @default("[]")
+
+  clients           Client[]
+  reports           Report[]
+  dashboards        Dashboard[]
+  share             ShareOverview?
+  shareDashboards   ShareDashboard[]
+  shareReports      ShareReport[]
+  shareWidgets      ShareWidget[]
+  meta              EventMeta[]
+  references        Reference[]
+  access            ProjectAccess[]
+  notificationRules NotificationRule[]
+  notifications     Notification[]
+  imports           Import[]
+  gscConnection     GscConnection?
+  cohorts           Cohort[]
+
+  // When deleteAt > now(), the project will be deleted
+  deleteAt DateTime?
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  conversations Conversation[]
+
+  @@map("projects")
+}
+
+model Cohort {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  description    String?
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// [IPrismaCohortDefinition]
+  definition     Json      @default("{}")
+  isStatic       Boolean   @default(false)
+  profileCount   Int       @default(0)
+  lastComputedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@index([projectId])
+  @@map("cohorts")
+}
+
+enum AccessLevel {
+  read
+  write
+  admin
+}
+
+model ProjectAccess {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level          AccessLevel
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@map("project_access")
+}
+
+model Salt {
+  salt      String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("salts")
+}
+
+enum ClientType {
+  read
+  write
+  root
+}
+
+model Client {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  secret         String?
+  type           ClientType   @default(write)
+  projectId      String?
+  project        Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+
+  ignoreCorsAndSecret Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("clients")
+}
+
+enum Interval {
+  hour
+  day
+  month
+  minute
+  week
+}
+
+enum ChartType {
+  linear
+  bar
+  histogram
+  pie
+  metric
+  area
+  map
+  funnel
+  retention
+  conversion
+  sankey
+}
+
+model Dashboard {
+  id             String          @id @default(dbgenerated("gen_random_uuid()"))
+  name           String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reports        Report[]
+  share          ShareDashboard?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("dashboards")
+}
+
+enum Metric {
+  sum
+  average
+  min
+  max
+  // Appended last to match what `ALTER TYPE ... ADD VALUE` does in the DB,
+  // so `prisma migrate` reports no drift.
+  count
+}
+
+model Report {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  interval      Interval
+  range         String    @default("30d")
+  chartType     ChartType
+  lineType      String    @default("monotone")
+  breakdowns    Json
+  events        Json
+  globalFilters Json      @default("[]")
+  formula       String?
+  unit          String?
+  metric        Metric    @default(sum)
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  previous      Boolean   @default(false)
+  criteria      String?
+  funnelGroup   String?
+  funnelWindow  Float?
+  /// [IReportOptions]
+  options       Json?
+  visibleSeries String[]
+  startDate     String?
+  endDate       String?
+
+  dashboardId String
+  dashboard   Dashboard     @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  layout      ReportLayout?
+  share       ShareReport?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("reports")
+}
+
+model ReportLayout {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reportId String @unique @db.Uuid
+  report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  // Grid position and size
+  x Int @default(0)
+  y Int @default(0)
+  w Int @default(4)
+  h Int @default(3)
+
+  // Optional: store additional layout preferences
+  minW Int? @default(2)
+  minH Int? @default(2)
+  maxW Int?
+  maxH Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("report_layouts")
+}
+
+model ShareOverview {
+  id             String       @unique
+  projectId      String       @unique
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  public         Boolean      @default(false)
+  password       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@map("shares")
+}
+
+model ShareDashboard {
+  id             String       @unique
+  dashboardId    String       @unique
+  dashboard      Dashboard    @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  public         Boolean      @default(false)
+  password       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@map("share_dashboards")
+}
+
+model ShareReport {
+  id             String       @unique
+  reportId       String       @unique @db.Uuid
+  report         Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  public         Boolean      @default(false)
+  password       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@map("share_reports")
+}
+
+model ShareWidget {
+  id             String       @unique
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  public         Boolean      @default(true)
+  /// [IPrismaWidgetOptions]
+  options        Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+
+  @@map("share_widgets")
+}
+
+model EventMeta {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  conversion Boolean?
+  color      String?
+  icon       String?
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([name, projectId])
+  @@map("event_meta")
+}
+
+model Reference {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  description String?
+  date        DateTime @default(now())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("references")
+}
+
+enum IntegrationType {
+  app
+  mail
+  custom
+}
+
+model NotificationRule {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  projectId     String
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  integrations  Integration[]
+  sendToApp     Boolean        @default(false)
+  sendToEmail   Boolean        @default(false)
+  /// [IPrismaNotificationRuleConfig]
+  config        Json
+  template      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  notifications Notification[]
+
+  @@map("notification_rules")
+}
+
+model Notification {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId          String
+  project            Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title              String
+  message            String
+  isReadAt           DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @default(now()) @updatedAt
+  sendToApp          Boolean           @default(false)
+  sendToEmail        Boolean           @default(false)
+  integration        Integration?      @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  integrationId      String?           @db.Uuid
+  notificationRuleId String?           @db.Uuid
+  notificationRule   NotificationRule? @relation(fields: [notificationRuleId], references: [id], onDelete: Cascade)
+  /// [IPrismaNotificationPayload]
+  payload            Json?
+
+  @@map("notifications")
+}
+
+model Integration {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String
+  /// [IPrismaIntegrationConfig]
+  config            Json
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId    String
+  notificationRules NotificationRule[]
+  notifications     Notification[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now()) @updatedAt
+
+  @@map("integrations")
+}
+
+model ResetPassword {
+  id        String   @id
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("reset_password")
+}
+
+enum ImportStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model Import {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String
+  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  jobId           String? // BullMQ job ID
+  status          ImportStatus
+  statusMessage   String? // Human-readable current step like "Importing events (Feb 2025)", "Generating session IDs"
+  errorMessage    String?
+  /// [IPrismaImportConfig]
+  config          Json
+  totalEvents     Int          @default(0)
+  processedEvents Int          @default(0)
+  currentStep     String?
+  currentBatch    String? // String date 2020-01-01
+  createdAt       DateTime     @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  @@map("imports")
+}
+
+enum InsightState {
+  active
+  suppressed
+  closed
+}
+
+model ProjectInsight {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId    String
+  moduleKey    String // e.g. "referrers", "entry-pages"
+  dimensionKey String // e.g. "referrer:instagram", "page:/pricing"
+  windowKind   String // "yesterday" | "rolling_7d" | "rolling_30d"
+  state        InsightState @default(active)
+
+  title       String
+  summary     String?
+  displayName String  @default("")
+  /// [IPrismaProjectInsightPayload]
+  payload     Json    @default("{}") // Rendered insight payload (typed)
+
+  direction    String? // "up" | "down" | "flat"
+  impactScore  Float   @default(0)
+  severityBand String? // "low" | "moderate" | "severe"
+
+  // AI enrichment (Tier-1, written by the OpenAI enrichment job after upsert).
+  // Null until enriched; the dashboard sorts active insights by relevanceScore.
+  relevanceScore  Float? // 0..1 — is this worth a human's attention right now
+  aiSummary       String? // plain-language one-liner derived from the payload
+  aiCategory      String? // "spike" | "drop" | "shift" | "anomaly" | "trend"
+  emailWorthy     Boolean   @default(false) // include in weekly digest selection
+  referenceWorthy Boolean   @default(false) // discrete event worth a chart annotation
+  enrichedAt      DateTime?
+  enrichVersion   Int? // bump to force re-enrichment when prompt/schema changes
+
+  version  Int    @default(1)
+  threadId String @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  windowStart DateTime?
+  windowEnd   DateTime?
+
+  firstDetectedAt DateTime @default(now())
+  lastUpdatedAt   DateTime @default(now()) @updatedAt
+  lastSeenAt      DateTime @default(now())
+
+  events InsightEvent[]
+
+  @@unique([projectId, moduleKey, dimensionKey, windowKind, state])
+  @@index([projectId, impactScore(sort: Desc)])
+  @@index([projectId, moduleKey, windowKind, state])
+  @@index([projectId, state, relevanceScore(sort: Desc)])
+  @@map("project_insights")
+}
+
+model InsightEvent {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  insightId  String         @db.Uuid
+  insight    ProjectInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  eventKind  String // "created" | "updated" | "severity_up" | "direction_flip" | "closed" | etc
+  changeFrom Json?
+  changeTo   Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([insightId, createdAt])
+  @@map("insight_events")
+}
+
+model GscConnection {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId            String    @unique
+  project              Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  siteUrl              String    @default("")
+  accessToken          String
+  refreshToken         String
+  accessTokenExpiresAt DateTime?
+  lastSyncedAt         DateTime?
+  lastSyncStatus       String?
+  lastSyncError        String?
+  backfillStatus       String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @default(now()) @updatedAt
+
+  @@map("gsc_connections")
+}
+
+model EmailUnsubscribe {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  category  String
+  createdAt DateTime @default(now())
+
+  @@unique([email, category])
+  @@map("email_unsubscribes")
+}

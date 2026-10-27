@@ -1,0 +1,10 @@
+{
+  "title": "API",
+  "pages": [
+    "authentication",
+    "track",
+    "export",
+    "insights",
+    "manage"
+  ]
+}

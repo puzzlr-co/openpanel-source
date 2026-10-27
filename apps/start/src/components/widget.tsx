@@ -1,0 +1,81 @@
+import { cn } from '@/utils/cn';
+import type { LucideIcon } from 'lucide-react';
+
+export interface WidgetHeadProps {
+  children: React.ReactNode;
+  className?: string;
+}
+export function WidgetHead({ children, className }: WidgetHeadProps) {
+  return (
+    <div
+      className={cn(
+        'border-b border-border p-4 [&_.title]:whitespace-nowrap [&_.title]:font-semibold [&_.title]:text-lg',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export interface WidgetTitleProps {
+  children: React.ReactNode;
+  className?: string;
+  icon?: LucideIcon;
+}
+export function WidgetTitle({
+  children,
+  className,
+  icon: Icon,
+}: WidgetTitleProps) {
+  return (
+    <div
+      className={cn(
+        'relative flex items-center gap-4',
+        className,
+        !!Icon && 'pl-12',
+      )}
+    >
+      {Icon && (
+        <div className="absolute left-0 rounded-lg bg-def-200 p-2">
+          <Icon size={18} />
+        </div>
+      )}
+      <div className="title">{children}</div>
+    </div>
+  );
+}
+
+export interface WidgetBodyProps {
+  children: React.ReactNode;
+  className?: string;
+}
+export function WidgetBody({ children, className }: WidgetBodyProps) {
+  return <div className={cn('p-4', className)}>{children}</div>;
+}
+
+export interface WidgetEmptyStateProps {
+  icon: LucideIcon;
+  text: string;
+}
+export function WidgetEmptyState({ icon: Icon, text }: WidgetEmptyStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
+      <Icon size={28} strokeWidth={1.5} />
+      <p className="text-sm">{text}</p>
+    </div>
+  );
+}
+
+export interface WidgetProps {
+  children: React.ReactNode;
+  className?: string;
+  ref?: React.RefObject<HTMLDivElement | null>;
+}
+export function Widget({ children, className, ...props }: WidgetProps) {
+  return (
+    <div className={cn('card self-start', className)} {...props}>
+      {children}
+    </div>
+  );
+}

@@ -1,0 +1,20 @@
+{
+  "pages": [
+    "---Introduction---",
+    "index",
+    "---Get started---",
+    "...get-started",
+    "---Tracking---",
+    "...(tracking)",
+    "---API---",
+    "...api",
+    "---MCP---",
+    "...mcp",
+    "---Dashboard---",
+    "...dashboard",
+    "---Self-hosting---",
+    "...self-hosting",
+    "---Migration---",
+    "...migration"
+  ]
+}

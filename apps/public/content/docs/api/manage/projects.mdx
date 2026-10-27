@@ -1,0 +1,28 @@
+---
+title: Projects
+description: Manage your OpenPanel projects programmatically. Create, read, update, and delete projects using the Manage API.
+---
+
+## Authentication
+
+Requires a `root` client. See the [Authentication](/docs/api/authentication) guide.
+
+## Base URL
+
+```
+https://api.openpanel.dev/manage/projects
+```
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/manage/projects` | List all projects in your organization |
+| `GET` | `/manage/projects/{id}` | Get a specific project |
+| `POST` | `/manage/projects` | Create a new project |
+| `PATCH` | `/manage/projects/{id}` | Update a project |
+| `DELETE` | `/manage/projects/{id}` | Soft-delete a project (24h grace period) |
+
+When you create a project, a default `write` client is automatically created and returned with the response. The client secret is only shown once.
+
+For full request/response schemas, see the [API Reference](/docs/api-reference).

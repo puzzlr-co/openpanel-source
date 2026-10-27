@@ -1,0 +1,590 @@
+{
+  "slug": "google-analytics-alternative",
+  "page_type": "alternative",
+  "seo": {
+    "title": "Best Open Source Google Analytics Alternative 2026 - Free & Private",
+    "description": "Switch from Google Analytics to OpenPanel \u2014 open-source, cookie-free, GDPR-compliant analytics with EU hosting. No consent banners needed. Self-host for free or start from $2.50/mo.",
+    "noindex": false
+  },
+  "hero": {
+    "heading": "The Open Source Google Analytics Alternative",
+    "subheading": "OpenPanel is an open-source, privacy-first alternative to Google Analytics that combines web analytics with product analytics in one tool. Cookie-free tracking, EU data hosting, and a 2.3 KB SDK that won't slow down your site.",
+    "badges": [
+      "Open source (AGPL-3.0)",
+      "Cookie-free tracking",
+      "EU-only data hosting",
+      "Self-host for free",
+      "2.3 KB SDK"
+    ]
+  },
+  "competitor": {
+    "name": "Google Analytics",
+    "logo": "/logos/google-analytics.svg",
+    "url": "https://analytics.google.com",
+    "short_description": "Free web analytics platform from Google that tracks website traffic, user behavior, and conversions with deep integration into the Google advertising ecosystem.",
+    "founded": 2005,
+    "headquarters": "Mountain View, CA"
+  },
+  "overview": {
+    "title": "Why teams are switching from Google Analytics to OpenPanel",
+    "paragraphs": [
+      "Google Analytics has been the default analytics tool since 2005. But the forced migration to GA4 fundamentally changed the product \u2014 the new event-based model has a steep learning curve, the interface is confusing for most users, and data retention dropped to just 14 months on the free tier. Meanwhile, privacy regulations like GDPR and the ePrivacy Directive mean GA4 requires cookie consent banners that hurt conversion rates and annoy visitors.",
+      "OpenPanel is built for the post-GA4 world. It's fully open source under the AGPL-3.0 license, which means you can inspect, modify, and self-host the entire codebase. Unlike Google Analytics, OpenPanel tracks visitors without cookies \u2014 no consent banners needed, and full GDPR compliance out of the box. Your data stays on EU servers in Sweden, or you can self-host on your own infrastructure for complete data sovereignty.",
+      "Where GA4 splits functionality between free and enterprise tiers ($50,000+/year for GA4 360), OpenPanel gives you everything in one package: real-time dashboards, funnels, retention analysis, cohorts, user profiles, custom events, and revenue tracking. The SDK is just 2.3 KB gzipped \u2014 over 13x smaller than Google's gtag.js \u2014 which directly improves your Core Web Vitals and page load times.",
+      "OpenPanel also goes beyond what GA4 offers for free: built-in A/B testing, unlimited data retention (when self-hosted), no data sampling, and direct SQL access to your analytics data via ClickHouse. If you don't rely heavily on Google Ads attribution, OpenPanel gives you better analytics with better privacy at a fraction of the complexity."
+    ]
+  },
+  "summary_comparison": {
+    "title": "OpenPanel vs Google Analytics: Which is right for you?",
+    "intro": "Google Analytics and OpenPanel take fundamentally different approaches. GA4 prioritizes Google Ads integration and marketing attribution. OpenPanel prioritizes privacy, simplicity, and data ownership.",
+    "one_liner": "OpenPanel is open-source and privacy-first; Google Analytics is free but sends your data to Google and requires cookies.",
+    "best_for_openpanel": [
+      "Privacy-conscious teams who want analytics without cookies or consent banners",
+      "EU businesses that need GDPR-compliant analytics with European data hosting",
+      "Developers who want to self-host and own their analytics data completely",
+      "Teams frustrated with GA4's complexity who want simpler, actionable insights",
+      "Sites that care about performance \u2014 2.3 KB SDK vs Google's 30+ KB",
+      "Teams who need both web analytics and product analytics in one tool"
+    ],
+    "best_for_competitor": [
+      "Teams heavily invested in Google Ads who need native conversion tracking and attribution",
+      "Large enterprises with dedicated analytics teams running complex multi-touch attribution models",
+      "Organizations using the full Google Marketing Platform (Search Console, Ads, Tag Manager)",
+      "Teams with zero analytics budget who accept Google's privacy tradeoffs for a free product"
+    ]
+  },
+  "highlights": {
+    "title": "Key differences at a glance",
+    "intro": "Here's how OpenPanel and Google Analytics compare on the factors that matter most when choosing an analytics platform.",
+    "items": [
+      {
+        "label": "Open source",
+        "openpanel": "Yes \u2014 AGPL-3.0 license, full source code on GitHub",
+        "competitor": "No \u2014 proprietary, closed-source Google product"
+      },
+      {
+        "label": "Price",
+        "openpanel": "From $2.50/month cloud, or free self-hosted with unlimited events",
+        "competitor": "Free tier with limits, GA4 360 starts at $50,000/year"
+      },
+      {
+        "label": "Cookies",
+        "openpanel": "Cookie-free by default \u2014 no consent banner needed",
+        "competitor": "Requires first-party cookies and a consent banner under GDPR"
+      },
+      {
+        "label": "Data hosting",
+        "openpanel": "EU-only servers (Sweden) or self-host anywhere",
+        "competitor": "Processed on Google's US servers"
+      },
+      {
+        "label": "SDK size",
+        "openpanel": "2.3 KB gzipped \u2014 minimal impact on page speed",
+        "competitor": "30+ KB gzipped \u2014 impacts Core Web Vitals"
+      },
+      {
+        "label": "Data retention",
+        "openpanel": "Unlimited (self-hosted) or plan-based (cloud)",
+        "competitor": "2\u201314 months free tier, up to 50 months on GA4 360"
+      },
+      {
+        "label": "Data sampling",
+        "openpanel": "Never \u2014 every event counted accurately",
+        "competitor": "Yes \u2014 free tier samples data at high traffic volumes"
+      },
+      {
+        "label": "Self-hosting",
+        "openpanel": "Yes \u2014 Docker Compose, guided setup wizard",
+        "competitor": "Not available"
+      }
+    ]
+  },
+  "feature_comparison": {
+    "title": "Feature-by-feature comparison",
+    "intro": "OpenPanel combines web analytics with product analytics. Google Analytics focuses on marketing attribution and traffic analysis within the Google ecosystem.",
+    "groups": [
+      {
+        "group": "Web analytics",
+        "features": [
+          {
+            "name": "Page views & visitors",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Traffic sources & referrals",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Geographic data",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Device & browser breakdown",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "UTM campaign tracking",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Real-time dashboard",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel shows live events; GA4 real-time is limited to last 30 minutes"
+          },
+          {
+            "name": "Outgoing link tracking",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel tracks automatically with trackOutgoingLinks option"
+          }
+        ]
+      },
+      {
+        "group": "Product analytics",
+        "features": [
+          {
+            "name": "Custom event tracking",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel uses a simpler track() API vs GA4's gtag event model"
+          },
+          {
+            "name": "Funnel analysis",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "GA4 funnels require Explorations; OpenPanel has built-in funnel builder"
+          },
+          {
+            "name": "Retention analysis",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "User profiles & identification",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel has rich user profiles with session history; GA4 uses User Properties"
+          },
+          {
+            "name": "Cohort analysis",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Revenue & e-commerce tracking",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Conversion tracking",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          }
+        ]
+      },
+      {
+        "group": "Advanced features",
+        "features": [
+          {
+            "name": "A/B testing",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "Google Optimize was shut down September 2023 \u2014 no built-in replacement"
+          },
+          {
+            "name": "Custom dashboards",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "GA4 uses complex Explorations; OpenPanel has drag-and-drop dashboard builder"
+          },
+          {
+            "name": "AI insights",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Attribution modeling",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "GA4 has data-driven attribution \u2014 its strongest advantage for advertisers"
+          },
+          {
+            "name": "Alerts & notifications",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel supports webhooks, Slack, Discord, and email alerts"
+          },
+          {
+            "name": "SQL access to raw data",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "OpenPanel gives direct ClickHouse SQL access; GA4 requires BigQuery export ($50k+ tier)"
+          }
+        ]
+      },
+      {
+        "group": "Privacy & compliance",
+        "features": [
+          {
+            "name": "Cookie-free tracking",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "GA4 requires first-party cookies for session and user tracking"
+          },
+          {
+            "name": "No consent banner needed",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "GA4 requires consent under GDPR and ePrivacy Directive"
+          },
+          {
+            "name": "EU data residency",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "OpenPanel hosted in Sweden; GA4 processes data on US servers"
+          },
+          {
+            "name": "IP anonymization",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "Both anonymize IPs; OpenPanel uses daily rotating salts for extra privacy"
+          },
+          {
+            "name": "Self-hosting option",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "Complete data sovereignty when self-hosted on your infrastructure"
+          },
+          {
+            "name": "Open source code",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "OpenPanel is AGPL-3.0; you can audit every line of code"
+          },
+          {
+            "name": "DPA available",
+            "openpanel": "on request",
+            "competitor": true,
+            "notes": null
+          }
+        ]
+      },
+      {
+        "group": "Integrations & ecosystem",
+        "features": [
+          {
+            "name": "REST API",
+            "openpanel": true,
+            "competitor": true,
+            "notes": null
+          },
+          {
+            "name": "Data export",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "GA4 requires 360 ($50k+) for full BigQuery export; OpenPanel exports freely"
+          },
+          {
+            "name": "Google Ads integration",
+            "openpanel": false,
+            "competitor": true,
+            "notes": "GA4's strongest feature \u2014 native Google Ads conversion tracking"
+          },
+          {
+            "name": "Google Search Console",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "Both integrate with Google Search Console for search data"
+          },
+          {
+            "name": "Webhooks",
+            "openpanel": true,
+            "competitor": false,
+            "notes": "Send real-time event data to any endpoint"
+          },
+          {
+            "name": "WordPress plugin",
+            "openpanel": true,
+            "competitor": true,
+            "notes": "OpenPanel has an official WordPress plugin for easy setup"
+          }
+        ]
+      }
+    ]
+  },
+  "technical_comparison": {
+    "title": "Technical comparison for developers",
+    "intro": "For developers evaluating analytics tools, the technical implementation differences between OpenPanel and Google Analytics are significant.",
+    "items": [
+      {
+        "label": "SDK size (JavaScript)",
+        "openpanel": "~2.3 KB gzipped",
+        "competitor": "~30+ KB gzipped (gtag.js + analytics.js)",
+        "notes": "OpenPanel's SDK is 13x smaller \u2014 a direct improvement to Core Web Vitals and page load speed"
+      },
+      {
+        "label": "Supported SDKs",
+        "openpanel": [
+          "JavaScript/Script tag",
+          "React",
+          "Next.js",
+          "Vue",
+          "Astro",
+          "Remix",
+          "Node.js",
+          "Express",
+          "Python",
+          "Swift (iOS)",
+          "Kotlin (Android)",
+          "React Native"
+        ],
+        "competitor": [
+          "JavaScript (gtag.js)",
+          "iOS (via Firebase SDK)",
+          "Android (via Firebase SDK)",
+          "Flutter",
+          "Unity",
+          "AMP",
+          "Google Tag Manager"
+        ],
+        "notes": "OpenPanel has native SDKs for modern frameworks; GA4 mobile tracking requires the heavy Firebase SDK"
+      },
+      {
+        "label": "Open source",
+        "openpanel": "Yes \u2014 AGPL-3.0, full source code on GitHub",
+        "competitor": "No \u2014 proprietary Google product",
+        "notes": "OpenPanel can be audited, forked, and self-hosted"
+      },
+      {
+        "label": "Self-hosted deployment",
+        "openpanel": "Docker Compose, guided setup wizard",
+        "competitor": "Not available",
+        "notes": "OpenPanel self-hosting takes ~15 minutes with our setup script"
+      },
+      {
+        "label": "Database & data access",
+        "openpanel": "ClickHouse (analytics) + PostgreSQL (config) \u2014 direct SQL access",
+        "competitor": "Proprietary Google infrastructure \u2014 no direct access",
+        "notes": "OpenPanel gives you direct SQL access to your raw event data"
+      },
+      {
+        "label": "Data retention",
+        "openpanel": "Unlimited when self-hosted, plan-based on cloud",
+        "competitor": "2\u201314 months (free tier), up to 50 months (GA4 360 at $50k+/year)",
+        "notes": "GA4's strict retention limits are a common reason teams switch"
+      },
+      {
+        "label": "Data sampling",
+        "openpanel": "Never \u2014 100% accurate data",
+        "competitor": "Yes \u2014 GA4 free tier samples at high traffic volumes",
+        "notes": "Data sampling means your reports may not reflect actual numbers"
+      }
+    ]
+  },
+  "pricing": {
+    "title": "Pricing comparison",
+    "intro": "Google Analytics is 'free' in exchange for your visitors' data. OpenPanel offers transparent pricing with a free self-hosted option.",
+    "openpanel": {
+      "model": "Event-based, transparent pricing",
+      "description": "Cloud hosting starts at $2.50/month for 5,000 events. 100,000 events costs $20/month. Self-host for free with unlimited events, no restrictions. No limits on users, dashboards, projects, or data retention on any plan."
+    },
+    "competitor": {
+      "model": "Freemium with enterprise tier",
+      "description": "GA4 free tier has significant limitations: data sampling at high volumes, 14-month maximum data retention, limited Explorations, and no BigQuery export. GA4 360 (enterprise) starts at $50,000/year for higher limits, unsampled data, and support. The 'free' tier is subsidized by Google's advertising business \u2014 your visitors' data is the product.",
+      "free_tier": "Yes (with major limitations and privacy tradeoffs)",
+      "pricing_url": "https://marketingplatform.google.com/about/analytics/"
+    }
+  },
+  "migration": {
+    "title": "How to migrate from Google Analytics to OpenPanel",
+    "intro": "Switching from Google Analytics to OpenPanel takes about 45 minutes for most websites. OpenPanel uses a similar event-based model to GA4, making the migration straightforward.",
+    "difficulty": "easy",
+    "estimated_time": "30-60 minutes",
+    "steps": [
+      {
+        "title": "Add the OpenPanel script alongside GA4",
+        "description": "Install the lightweight 2.3 KB OpenPanel script on your site. Run it in parallel with GA4 so you can compare data. It's a single script tag or npm package."
+      },
+      {
+        "title": "Map your GA4 events to OpenPanel",
+        "description": "OpenPanel's track() API closely mirrors GA4's event structure. Most events translate directly: gtag('event', 'purchase', {...}) becomes op.track('purchase', {...})."
+      },
+      {
+        "title": "Set up user identification",
+        "description": "Replace GA4's set user_properties with OpenPanel's identify() method for richer user profiles with session history and properties."
+      },
+      {
+        "title": "Configure dashboards and funnels",
+        "description": "Set up your reports in OpenPanel's visual dashboard builder. It's simpler than GA4's Explorations \u2014 most teams get set up in minutes."
+      },
+      {
+        "title": "Verify data and remove GA4",
+        "description": "After 1-2 weeks of parallel tracking, compare the data. Once verified, remove the GA4 script. You can also remove your cookie consent banner if it was only needed for analytics."
+      }
+    ],
+    "sdk_compatibility": {
+      "similar_api": true,
+      "notes": "OpenPanel's track() API closely mirrors GA4's gtag event model. Custom events, e-commerce events, and page views all translate with minimal changes."
+    },
+    "historical_data": {
+      "can_import": false,
+      "notes": "Google Analytics doesn't provide easy data export. Historical data stays accessible in GA4 for your configured retention period. Most teams start fresh with OpenPanel for cleaner, privacy-compliant data going forward."
+    }
+  },
+  "use_cases": {
+    "title": "When to choose OpenPanel over Google Analytics",
+    "intro": "OpenPanel is the better choice for teams that prioritize privacy, simplicity, and data ownership over the Google advertising ecosystem.",
+    "items": [
+      {
+        "title": "GDPR-compliant analytics without consent banners",
+        "description": "Cookie-free tracking and EU-only data hosting mean full GDPR and ePrivacy compliance without annoying consent banners that hurt your conversion rates.",
+        "icon": "shield"
+      },
+      {
+        "title": "Open source transparency and control",
+        "description": "Every line of OpenPanel is on GitHub — the platform under AGPL-3.0, the client SDKs under MIT. Audit the code, verify privacy claims, and contribute improvements. No black-box data processing.",
+        "icon": "code"
+      },
+      {
+        "title": "Self-hosted for complete data sovereignty",
+        "description": "Deploy OpenPanel on your own servers with a one-command Docker Compose setup. Your analytics data never leaves your infrastructure \u2014 critical for healthcare, finance, and government.",
+        "icon": "server"
+      },
+      {
+        "title": "Faster websites with a tiny SDK",
+        "description": "At 2.3 KB, OpenPanel's SDK is 13x smaller than Google's gtag.js. Less JavaScript means faster page loads, better Core Web Vitals, and improved SEO rankings.",
+        "icon": "zap"
+      },
+      {
+        "title": "Web analytics + product analytics in one tool",
+        "description": "Get Plausible-style web analytics and Mixpanel-style product analytics (funnels, retention, cohorts, user profiles) in a single tool instead of paying for two.",
+        "icon": "layers"
+      },
+      {
+        "title": "Teams frustrated with GA4's complexity",
+        "description": "If your team struggles with GA4's confusing interface, complex event model, and limited Explorations \u2014 OpenPanel gives you the insights you need without the steep learning curve.",
+        "icon": "chart"
+      }
+    ]
+  },
+  "faqs": {
+    "title": "Frequently asked questions",
+    "intro": "Common questions about switching from Google Analytics to an open-source alternative.",
+    "items": [
+      {
+        "question": "Is Google Analytics open source?",
+        "answer": "No. Google Analytics is a proprietary, closed-source product owned by Google. You cannot inspect the tracking code, verify how your data is processed, or self-host it. OpenPanel is fully open source under the AGPL-3.0 license \u2014 the complete source code is available on GitHub for anyone to audit, modify, or self-host."
+      },
+      {
+        "question": "Is Google Analytics really free?",
+        "answer": "GA4 is free to use, but the cost is your visitors' privacy \u2014 data is processed on Google's US servers and used within Google's advertising ecosystem. There are also significant feature limitations: 14-month data retention, data sampling at high volumes, and no BigQuery export. GA4 360 removes these limits but costs $50,000+/year. OpenPanel offers a free self-hosted option with no limitations, or cloud hosting starting at $2.50/month."
+      },
+      {
+        "question": "Why are people switching away from Google Analytics?",
+        "answer": "The main reasons teams switch from GA4 are: 1) Privacy concerns \u2014 data sent to Google's US servers creates GDPR compliance issues, 2) Cookie consent banners \u2014 GA4 requires them, which hurts UX and conversion rates, 3) GA4 complexity \u2014 the new interface and event model have a steep learning curve, 4) Data limitations \u2014 sampling, short retention, and limited exports on the free tier, 5) Performance \u2014 the 30+ KB gtag.js script impacts page load speed."
+      },
+      {
+        "question": "Do I need a cookie consent banner with OpenPanel?",
+        "answer": "No. OpenPanel uses cookie-free tracking by default. It doesn't store cookies or collect personal data, so no consent banner is required under GDPR, ePrivacy Directive, or PECR. This improves user experience and can boost conversion rates by 2-5% compared to sites with consent banners."
+      },
+      {
+        "question": "Is OpenPanel GDPR compliant?",
+        "answer": "Yes. OpenPanel is based in Sweden (EU), uses cookie-free tracking, hashes IP addresses with daily rotating salts, stores data exclusively on EU servers, and offers self-hosting for complete data sovereignty. We also provide DPA agreements on request."
+      },
+      {
+        "question": "Can I self-host OpenPanel?",
+        "answer": "Yes. OpenPanel can be self-hosted using Docker Compose (ClickHouse, Postgres, and Redis). A one-command ./setup wizard walks you through configuration, then ./start brings the whole stack up in minutes \u2014 the entire process takes about 15 minutes. When self-hosted, you get unlimited events, unlimited data retention, and complete control over your data \u2014 no usage fees. The source code is available under the AGPL-3.0 license."
+      },
+      {
+        "question": "Can I import my Google Analytics data into OpenPanel?",
+        "answer": "Google Analytics doesn't provide an easy data export mechanism, so direct migration of historical data isn't possible. Most teams run OpenPanel alongside GA4 for 1-2 weeks to verify data, then switch completely. Your historical GA4 data remains accessible in Google Analytics for your configured retention period."
+      },
+      {
+        "question": "How does OpenPanel compare to other GA alternatives like Plausible or Matomo?",
+        "answer": "OpenPanel is unique because it combines web analytics (like Plausible) with product analytics (like Mixpanel) in one open-source tool. Plausible is simpler but lacks funnels, cohorts, and user profiles. Matomo is feature-rich but requires cookies and has a heavier setup. OpenPanel gives you the best of both worlds with a tiny 2.3 KB SDK."
+      },
+      {
+        "question": "Does OpenPanel integrate with Google Ads?",
+        "answer": "No. If you rely heavily on Google Ads conversion tracking and multi-touch attribution, GA4 remains the better choice for that specific use case. OpenPanel focuses on privacy-first analytics for teams that don't need deep Google Ads integration."
+      },
+      {
+        "question": "How does the SDK size affect my website's performance?",
+        "answer": "OpenPanel's JavaScript SDK is 2.3 KB gzipped, compared to Google Analytics' 30+ KB. That's a 13x difference that directly impacts your Core Web Vitals scores, page load times, and potentially your SEO rankings. For mobile users on slower connections, the difference is even more noticeable."
+      }
+    ]
+  },
+  "related_links": {
+    "guides": [
+      {
+        "title": "Migrate from Google Analytics",
+        "url": "/guides/migrate-from-google-analytics"
+      },
+      {
+        "title": "Website analytics setup",
+        "url": "/guides/website-analytics-setup"
+      },
+      {
+        "title": "Track custom events",
+        "url": "/guides/track-custom-events"
+      }
+    ],
+    "articles": [
+      {
+        "title": "9 best open source web analytics tools in 2026",
+        "url": "/articles/self-hosted-web-analytics"
+      },
+      {
+        "title": "Cookieless analytics: best tools and how they work",
+        "url": "/articles/cookieless-analytics"
+      },
+      {
+        "title": "Self-hosted web analytics tools compared",
+        "url": "/articles/self-hosted-web-analytics"
+      }
+    ],
+    "alternatives": [
+      {
+        "name": "Plausible",
+        "url": "/compare/plausible-alternative"
+      },
+      {
+        "name": "Matomo",
+        "url": "/compare/matomo-alternative"
+      },
+      {
+        "name": "Umami",
+        "url": "/compare/umami-alternative"
+      },
+      {
+        "name": "PostHog",
+        "url": "/compare/posthog-alternative"
+      }
+    ]
+  },
+  "ctas": {
+    "primary": {
+      "label": "Try OpenPanel Free",
+      "href": "https://dashboard.openpanel.dev/onboarding"
+    },
+    "secondary": {
+      "label": "View Source on GitHub",
+      "href": "https://github.com/Openpanel-dev/openpanel"
+    }
+  }
+}

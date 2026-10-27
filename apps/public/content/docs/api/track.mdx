@@ -1,0 +1,43 @@
+---
+title: Track
+description: How to send events, identify users, and manage groups via the HTTP API.
+---
+
+## Good to know
+
+- Pass the `x-client-ip` header to enable geo location tracking
+- Pass the `user-agent` header to enable device detection
+
+## Authentication
+
+All requests require a `write` or `root` client. See the [Authentication](/docs/api/authentication) guide.
+
+```bash
+-H "openpanel-client-id: YOUR_CLIENT_ID" \
+-H "openpanel-client-secret: YOUR_CLIENT_SECRET"
+```
+
+## Base URL
+
+```
+https://api.openpanel.dev
+```
+
+## Event types
+
+The `/track` endpoint accepts a `type` field that determines what gets recorded:
+
+| Type | Description |
+|------|-------------|
+| `track` | Record a named event with optional properties |
+| `identify` | Create or update a user profile |
+| `increment` | Increment a numeric profile property |
+| `decrement` | Decrement a numeric profile property |
+| `group` | Create or update a group |
+| `assign_group` | Link a profile to one or more groups |
+
+### Groups and events
+
+Groups are never auto-populated on events — even after `assign_group`. Pass `groups` explicitly on each `track` call where you need group data.
+
+For full request/response schemas for every event type, see the [API Reference](/docs/api-reference/track/track/post).
